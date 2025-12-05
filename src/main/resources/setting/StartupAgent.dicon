@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE components PUBLIC "-//SEASAR//DTD S2Container 2.4//EN"
+          "http://www.seasar.org/dtd/components24.dtd">
+
+<components>
+	<!-- <component name="ShellAgent" class="primula.api.core.interim.shell.ShellAgent"/> -->
+	<!-- <component name="StationaryAgent" class="primula.api.core.interim.monitor.StationaryAgent"/> -->
+<!--
+	<component name="MakeResultJson"
+		class="AgentSphereWeb.MakeResultJson" />-->
+	<!-- @author nakadaira(2019) -->
+<!--
+	<component name="testServersideAgent"
+		class="AgentSphereWeb.testServersideAgent" />-->
+	<!-- @author goto -->
+<!--
+	<component name="WebServersideAgentClickListener"
+		class="AgentSphereWeb.WebServersideAgentClickListener" />-->
+	<!-- @author goto -->
+<!--
+	<component name="WebClientsideAgentClickListener"
+		class="AgentSphereWeb.WebClientsideAgentClickListener" />-->
+	<!-- @author goto -->
+<!--
+	<component name="ServersideGenerateAgent"
+		class="AgentSphereWeb.ServersideGenerateAgent" />-->
+	<!-- @author goto -->
+	<!-- nakadaira(2019) 変更 -->
+
+
+
+	<!--<component name="testClientsideAgent" class="AgentSphereWeb.testClientsideAgent"/> --> <!-- @author Mikamiyama -->
+	<!-- <component name="ClientsideMigAgent" class="AgentSphereWeb.ClientsideMigAgent"/> --> <!-- @author Mikamiyama -->
+	<!-- <component name="WebSchedulingAgent" class="AgentSphereWeb.WebSchedulingAgent"/> --> <!-- @author Mikamiyama -->
+</components>

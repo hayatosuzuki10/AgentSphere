@@ -1,0 +1,191 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.17+ wizard for JavaCC 1.5.0+
+ */options{  JDK_VERSION = "1.5";  static = true;}PARSER_BEGIN(Parser)package primula.api.core.assh;
+
+import java.io.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import primula.api.core.assh.operator.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class Parser extends Thread{
+  private boolean requestStop = false;  public Parser()
+  {  }
+
+  public void run()  {
+    ShellEnvironment shellEnv = ShellEnvironment.getInstance();    Parser parser = null;
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    String line = null;
+    Boolean first = true;
+    ClassTable classTable = new ClassTable();    while (requestStop == false)    {      System.out.print(shellEnv.getInputLineText());
+
+      try      {        line = reader.readLine();      } catch(IOException e)      {      }
+      if(first)      {        parser = new Parser(new StringReader(line));
+        first = false;      }      else      {        parser.ReInit(new StringReader(line));      }
+      try      {        if (one_line(shellEnv))        {
+          System.out.println("finish!");
+          return;        }      }      catch (Exception e)      {        System.out.println("NOK.");        System.out.println(e.getMessage());      }      catch (Error e)      {        System.out.println("Oops.");        System.out.println(e.getMessage());        break;      }    }  }
+
+  public void requestStop()  {	this.requestStop = true;
+  }}PARSER_END(Parser)SKIP :{  " "| "\t"}TOKEN : /* OPERATORS */{  < PLUS : "+" >| < MINUS : "-" >| < MULTIPLY : "*" >| < DIVIDE : "/" >
+//| < EXIT : "exit" >}TOKEN :{  < CONSTANT : (< DIGIT >)+ >| < #DIGIT : [ "0"-"9" ] >}
+
+TOKEN :
+{
+  < NEW : "new" >
+//| < INDEX : "["(["0"-"9"])+"]" >
+| < OPTION : "-"(["a"-"z","A"-"Z","0"-"9","-","/"])+ >
+| < VARIABLE : "$"(["a"-"z","A"-"Z","0"-"9","-","/"])+ >
+| < AGENT : ["A"-"Z"](["a"-"z","A"-"Z","0"-"9","-","/"])*"Agent" >
+| < CLASS : ["A"-"Z"](["a"-"z","A"-"Z","0"-"9","-","/"])* >
+| < NAME : (["A"-"Z", "a"-"z", "0"-"9", "-", "_", "/", "\"", "\'", "!", "?"])+ >
+}boolean one_line(ShellEnvironment shellEnv) :{}{
+  < EOF >  {    return false;  }//| < EXIT >//  {//    return true;//  }| commandUnit(shellEnv)  {    return false;  }}void commandUnit(ShellEnvironment shellEnv) :
+{
+  String variable = null;
+  List<Object> data = null;
+  Object instance = null;
+  Class clazz = null;
+  int index = -1;
+  Token t = null;}{
+
+  data = invokecommand(false)   // コマンド判定
+
+| (t = < VARIABLE > | t = < CLASS >) ( "[" index = getIndex() "]" )?  {    if(VariableTable.containsKey(t.image)) {      instance = VariableTable.getOneData(t.image, index);    } else if(ClassTable.isClass(t.image)) {      clazz = ClassTable.getClass(t.image);    }  }
+
+(  < EOF >  {    if(VariableTable.containsKey(t.image)) {
+      if(index > -1) { System.out.println(VariableTable.getOneData(t.image, index)); }
+      else {
+        for(Object s : VariableTable.getData(t.image)) {
+        	System.out.println(s);
+      	}      }    }  }
+| "="  {
+    variable = t.image;
+    data = new ArrayList();  }
+
+  ( LOOKAHEAD(3) data = invokecommand(true) | getArgList(data) ) < EOF >  {    if(!data.isEmpty()) VariableTable.setVariable(variable, data);  }
+| invoker(instance, clazz)
+)
+
+}
+String AmbiguousName() :{  Token t;
+  StringBuffer s;}{  ( t = < NAME > | t = < CLASS > ) {
+    s = new StringBuffer(t.image);  }  ( LOOKAHEAD({getToken(1).image.equals(".")}) "." (t=< CLASS >|t=< NAME >|t=< AGENT >) { s.append("." + t.image); } )* {
+    System.out.println(s.toString());    return s.toString();  }}
+void invoker(Object instance, Class clazz) :{
+  Object result = null;}{
+  (
+    LOOKAHEAD({getToken(3).image.equals("(")}) result = invokeMethod(instance, clazz)    {      System.out.println(result);    }
+  | LOOKAHEAD({!getToken(3).image.equals("=")}) instance = getFieldValue(instance, clazz)
+  )*
+  (    changeFieldValue(instance, clazz)
+  )?}
+
+// 指定したインスタンスの持つフィールドの値を変更する.
+void changeFieldValue(Object instance, Class staticClass) :
+{
+  Token t = null;
+  String arg = null;
+  Object newVal = null;
+  Class clazz = null;
+  int index = -1;}
+{
+  (    "." (t = < NAME >|t = < CLASS >) "=" { arg = t.image; }    (      < NEW > { newVal = createNewInstance(); }
+    | t = < CLASS > { clazz = ClassTable.getClass(t.image); }    | t = < VARIABLE > ( "[" index = getIndex() "]" )? { newVal = VariableTable.getOneData(t.image, index); }
+    | (t = < NAME > | t = < CONSTANT >) { newVal = Converter.valueTypeConverter(t.image); }    )
+    (      LOOKAHEAD(3) newVal = getFieldValue(newVal, clazz)
+    | newVal = invokeMethod(newVal, clazz)    )*  ) {     FieldOperator.changeFieldValue(instance, staticClass, arg, newVal);   }}
+
+// メソッドやコンストラクタの持つ引数の値を取得する.
+void getArgList(List<Object> argList) :
+{
+  Token t = null;
+  Object arg = null;
+  Class clazz = null;
+  int index = -1;
+}
+{
+  (
+    (
+      < NEW > { arg = createNewInstance(); }
+    | t = < CLASS > { clazz = ClassTable.getClass(t.image); }
+    | t = < VARIABLE > ( "[" index = getIndex() "]" )? { arg = VariableTable.getOneData(t.image, index); }
+    | (t = < NAME > | t = < CONSTANT >) { arg = Converter.valueTypeConverter(t.image); }
+    )
+    (
+      LOOKAHEAD({getToken(3).image.equals("(")}) arg = invokeMethod(arg, clazz)
+    | arg = getFieldValue(arg, clazz)
+    )*
+  )
+  {
+    argList.add(arg);
+  }
+
+  ( "," getArgList(argList) )?
+}
+
+// 指定したインスタンスの持つフィールドの値を取得する.
+Object getFieldValue(Object instance, Class clazz) :{  Token t = null;}{  "." ( t = < NAME > | t = < CLASS > ) {    return FieldOperator.getFieldValue(instance, clazz, t.image);  }}
+
+// 指定したインスタンスの持つメソッドを実行する.
+Object invokeMethod(Object instance, Class clazz) :{  Token t = null;
+  List<Object> argList = new ArrayList();
+  Object obj = null;}{  "." t = < NAME > "(" ( getArgList(argList) )? ")" {
+		//System.out.println(instance + " ***** " + clazz + " ***** " + t.image + " ***** " + argList);/////////////////////    obj = MethodOperator.invokeMethod(instance, clazz, t.image, argList);
+    return obj;  }}
+
+// 新たなインスタンスを作成する.
+Object createNewInstance() :{  Token t = null;
+  String str = null;
+  List<Object> argList = new ArrayList();}{  ( str = AmbiguousName() ) ( "(" (getArgList(argList))? ")" ) {    return InstanceCreator.createNewInstance(str, argList);  }}
+
+// コマンドの実行.
+List<Object> invokecommand(boolean doReturn) :{  Token t = null;
+  String cmd = null;
+  String fileName = null;
+  List<String> fileNames = new ArrayList();
+  Object instance = null;
+  List<String> option = new ArrayList();
+  List<Object> returnValue = new ArrayList();
+  int index = -1;}{  (
+    t = < NAME > { cmd = t.image; }
+    (
+      t = < OPTION > { option.add(t.image); }
+    //| LOOKAHEAD(2) t = < CLASS > { instance = ClassTable.getClass(t.image); }
+    | t = < CONSTANT > { fileNames.add(t.image); }
+    | fileName = getFileName() { fileNames.add(fileName); }
+    | t = < AGENT > { instance = t.image; }
+    | t = < VARIABLE > ( "[" index = getIndex() "]" )? { instance = VariableTable.getOneData(t.image, index); }
+        ( LOOKAHEAD(2) instance = getFieldValue(instance, null) )*
+    )*
+  ) {
+     //System.out.println(cmd + " " + option + " " + fileNames + " " + instance);////////////////
+     returnValue = CommandInvoker.invokeCommand(cmd, option, fileNames, instance);
+     if(doReturn) return returnValue;
+     else return null;
+   } }// ファイルの名前を取得する.String getFileName() :{  Token t = null;  StringBuffer s;
+}
+{
+  ( t = < NAME >  | t =< CLASS > | t = "." ) {
+    s = new StringBuffer(t.image);
+  }
+  ( LOOKAHEAD({getToken(1).image.equals(".")}) "." (t=< CLASS >|t=< NAME >|t="/") { s.append("." + t.image); }
+  | LOOKAHEAD({getToken(1).image.equals("\\")}) "\\" (t=< CLASS >|t=< NAME >) { s.append("\\" + t.image); } )* {
+//    System.out.println(s.toString());
+    return s.toString();
+  }
+}int getIndex() :{
+  int index = 0;
+  Token t = null;}{
+  t = < CONSTANT > {    index = Integer.parseInt(t.image);
+    return index;  }}
+
+
+
+
+
+
+

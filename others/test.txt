@@ -1,0 +1,3 @@
+<!-- @author Mikamiyama -->
+
+This is test text data for external project.

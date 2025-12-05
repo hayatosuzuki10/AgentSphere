@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PC Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<label>Scheduler Strategy:</label>
+	<select id="strategy-select">
+	  <option value="LoadAverageStrategy">LoadAverageStrategy</option>
+	  <option value="Strategy2022">Scheduler2022</option>
+	  <option value="ScoreBasedStrategy">ScoreBasedStrategy</option>
+	</select>
+	<label>Update Interval (ms):</label>
+	<input type="number" id="interval-input" value="1000">
+	<button onclick="applySchedulerConfig()">Apply</button>
+  <h1>PC Information</h1>
+
+  <!-- 🔷 タブ -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('load')">Load Average</button>
+    <button class="tab" onclick="showTab('cpu')">CPU</button>
+	<button class="tab" onclick="showTab('memory')">Memory</button>
+	<button class="tab" onclick="showTab('gpu')">GPU</button>
+	<button class="tab" onclick="showTab('network')">Network</button>
+	<button class="tab" onclick="showTab('speed')">Network Speed</button>
+  </div>
+
+  <!-- 🔶 ロードアベレージ表示 -->
+  <div id="load" class="tab-content active">
+    <div class="dashboard" id="dashboard-load"></div>
+  </div>
+
+  <!-- 🔶 CPU状況表示 -->
+  <div id="cpu" class="tab-content">
+    <div class="dashboard" id="dashboard-cpu"></div>
+  </div>
+  
+  <!-- 🔶 メモリ表示エリア -->
+  <div id="memory" class="tab-content">
+    <div class="dashboard" id="dashboard-memory"></div>
+  </div>
+  
+  <!-- 🔶 GPU状況表示 -->
+  <div id="gpu" class="tab-content">
+    <div class="dashboard" id="dashboard-gpu"></div>
+  </div>
+  
+  <!-- 🔶 ネットワーク状況表示 -->
+    <div id="network" class="tab-content">
+      <div class="dashboard" id="dashboard-network"></div>
+    </div>
+	
+	<!-- 🔶 ネットワークスピード状況表示 -->
+	    <div id="speed" class="tab-content">
+	      <div class="dashboard" id="dashboard-speed"></div>
+	    </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<project name="MyProject" default="build" basedir=".">  
+  
+    <taskdef name="javaflow" classname="org.apache.commons.javaflow.ant.AntRewriteTask">  
+    	<classpath>  
+    		 <pathelement location="bin"/>
+    		        <pathelement location="lib/ant-1.5.4.jar"/>
+    		        <pathelement location="lib/asm-2.2.1.jar"/>
+    		        <pathelement location="lib/asm-analysis-2.2.1.jar"/>
+    		        <pathelement location="lib/asm-attrs-2.2.1.jar"/>
+    		        <pathelement location="lib/asm-commons-2.2.1.jar"/>
+    		        <pathelement location="lib/asm-tree-2.1.jar"/>
+    		        <pathelement location="lib/asm-util-2.2.1.jar"/>
+    		        <pathelement location="lib/avalon-framework-4.1.3.jar"/>
+    		        <pathelement location="lib/bcel-5.2.jar"/>
+    		        <pathelement location="lib/commons-collections-3.1.jar"/>
+    		        <pathelement location="lib/commons-io-1.1.jar"/>
+    		        <pathelement location="lib/commons-javaflow-20060411.jar"/>
+    		        <pathelement location="lib/commons-jci-core-1.0.jar"/>
+    		        <pathelement location="lib/commons-jci-fam-1.0.jar"/>
+    		        <pathelement location="lib/commons-lang-2.1.jar"/>
+    		        <pathelement location="lib/commons-logging-1.1.jar"/>
+    		        <pathelement location="lib/commons-logging-api-1.0.4.jar"/>
+    		        <pathelement location="lib/jakarta-regexp-1.4.jar"/>
+    		        <pathelement location="lib/junit-3.8.1.jar"/>
+    		        <pathelement location="lib/junit-addons-1.4.jar"/>
+    		        <pathelement location="lib/log4j-1.2.12.jar"/>
+    		        <pathelement location="lib/logkit-1.0.1.jar"/>
+    		        <pathelement location="lib/servlet-api-2.3.jar"/>
+    		        <pathelement location="lib/xercesImpl-2.6.2.jar"/>
+    		        <pathelement location="lib/xmlParserAPIs-2.6.2.jar"/>
+    				<pathelement location="lib/Primula_Eclipse.jar"/>
+    	</classpath>  
+    </taskdef>  
+	
+	 <target name="clean">  
+	        <delete includeemptydirs="true">  
+	            <fileset dir="class" includes="**/*"/>  
+	        </delete>  
+	    </target>  
+      
+    <target name="build" depends="clean">  
+        <mkdir dir="build/classes"/>  
+          
+        <javac srcdir="src" destdir="bin"  >  
+            <classpath>  
+            	 <pathelement location="bin"/>
+            	        <pathelement location="lib/ant-1.5.4.jar"/>
+            	        <pathelement location="lib/asm-2.2.1.jar"/>
+            	        <pathelement location="lib/asm-analysis-2.2.1.jar"/>
+            	        <pathelement location="lib/asm-attrs-2.2.1.jar"/>
+            	        <pathelement location="lib/asm-commons-2.2.1.jar"/>
+            	        <pathelement location="lib/asm-tree-2.1.jar"/>
+            	        <pathelement location="lib/asm-util-2.2.1.jar"/>
+            	        <pathelement location="lib/avalon-framework-4.1.3.jar"/>
+            	        <pathelement location="lib/bcel-5.2.jar"/>
+            	        <pathelement location="lib/commons-collections-3.1.jar"/>
+            	        <pathelement location="lib/commons-io-1.1.jar"/>
+            	        <pathelement location="lib/commons-javaflow-20060411.jar"/>
+            	        <pathelement location="lib/commons-jci-core-1.0.jar"/>
+            	        <pathelement location="lib/commons-jci-fam-1.0.jar"/>
+            	        <pathelement location="lib/commons-lang-2.1.jar"/>
+            	        <pathelement location="lib/commons-logging-1.1.jar"/>
+            	        <pathelement location="lib/commons-logging-api-1.0.4.jar"/>
+            	        <pathelement location="lib/jakarta-regexp-1.4.jar"/>
+            	        <pathelement location="lib/junit-3.8.1.jar"/>
+            	        <pathelement location="lib/junit-addons-1.4.jar"/>
+            	        <pathelement location="lib/log4j-1.2.12.jar"/>
+            	        <pathelement location="lib/logkit-1.0.1.jar"/>
+            	        <pathelement location="lib/servlet-api-2.3.jar"/>
+            	        <pathelement location="lib/xercesImpl-2.6.2.jar"/>
+            	        <pathelement location="lib/xmlParserAPIs-2.6.2.jar"/>
+            			<pathelement location="lib/Primula_Eclipse.jar"/>
+            </classpath>  
+        </javac>  
+    	
+
+    	<javaflow srcdir="bin" dstdir="bin">  
+    	            <include name="**/*.class"/>  
+        </javaflow>  
+    	             	
+    </target>  
+   
+</project>  

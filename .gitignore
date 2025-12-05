@@ -1,0 +1,12 @@
+/bin/
+/target/
+/lib/
+/.hg/
+/share/*
+*.class
+*.bak
+*.log
+/history.txt
+/com/
+/database/
+.DS_Store

@@ -1,0 +1,13 @@
+{
+  "allIPaddresses" : [ "172.28.15.74" ],
+  "Pcinfos" : {
+    "172.28.15.74" : {
+      "IPAddress" : "172.28.15.74",
+      "ClockSpeed" : 3228000000,
+      "load_average" : 2.88623046875,
+      "FreeMemory" : 411749168,
+      "CpuLoadPercent" : 0.3442622950819672,
+      "agentnum" : 4
+    }
+  }
+}

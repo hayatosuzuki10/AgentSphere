@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE components PUBLIC "-//SEASAR//DTD S2Container 2.4//EN"
+          "http://www.seasar.org/dtd/components24.dtd">
+<components>
+    <component name="Interpreter" class="primula.api.core.assh.Interpreter"/>
+    <component name="ConfirmReceiver" class="primula.api.core.network.receiver.testsocket.ConfirmReceiver"/>
+    <component name="ConfirmSender" class="primula.api.core.network.receiver.testsocket.ConfirmSender"/>
+    <component name="AgentManager" class="primula.api.core.agent.AgentManager"/>
+    <component name="MessageServer" class="primula.api.core.network.MessageServer"/>
+    <component name="ChordManager" class="primula.api.core.network.dhtmodule3.ChordManeger"></component>
+    <component class="primula.api.core.network.CommnunicationSender" name="CommunicationSender"></component>
+    <component name="CommunicationReceiver" class="primula.api.core.network.CommunicationReceiver"></component>
+    <component class="sphereConnection.EasySphereNetworkManeger" name="EasySphereNetworkManager"></component>
+    <component class="sphereIO.system.SphereFileSystem" name="SphereFileSystem"></component></components>

@@ -1,0 +1,12 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+{
+    "FirstAccessAddress":"192.168.0.3", //ここで書き換え禁止
+    "FirstAccessAddressPort":"55878",
+    "DefaultPort":"55878",
+    "NodeRefreshRate":"5", //単位は分
+    "DefaultAgentGroupName":"Default" //基本的に変更しちゃだめ
+}

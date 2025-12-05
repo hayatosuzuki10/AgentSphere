@@ -1,0 +1,46 @@
+package ranporkTest.mavenTest;
+
+import java.io.File;
+
+import org.deeplearning4j.nn.conf.ComputationGraphConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.graph.ComputationGraph;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.learning.config.Nesterovs;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
+
+public class DL4JTest {
+	public static void main(String[] args) throws Exception {
+		//Define a simple ComputationGraph:
+		ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
+				.weightInit(WeightInit.XAVIER)
+				.updater(new Nesterovs(0.1, 0.9))
+				.graphBuilder()
+				.addInputs("in")
+				.addLayer("layer0", new DenseLayer.Builder().nIn(4).nOut(3).activation(Activation.TANH).build(), "in")
+				.addLayer("layer1",
+						new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+								.activation(Activation.SOFTMAX).nIn(3).nOut(3).build(),
+						"layer0")
+				.setOutputs("layer1")
+				.build();
+
+		ComputationGraph net = new ComputationGraph(conf);
+		net.init();
+
+		//Save the model
+		File locationToSave = new File("MyComputationGraph.zip"); //Where to save the network. Note: the file is in .zip format - can be opened externally
+		boolean saveUpdater = true; //Updater: i.e., the state for Momentum, RMSProp, Adagrad etc. Save this if you want to train your network more in the future
+		net.save(locationToSave, saveUpdater);
+
+		//Load the model
+		ComputationGraph restored = ComputationGraph.load(locationToSave, saveUpdater);
+
+		System.out.println("Saved and loaded parameters are equal:      " + net.params().equals(restored.params()));
+		System.out.println("Saved and loaded configurations are equal:  "
+				+ net.getConfiguration().equals(restored.getConfiguration()));
+	}
+}

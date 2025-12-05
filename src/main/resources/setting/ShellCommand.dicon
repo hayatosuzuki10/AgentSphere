@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE components PUBLIC "-//SEASAR//DTD S2Container 2.4//EN"
+"http://www.seasar.org/dtd/components24.dtd">
+<components>
+   <!--
+    <component name="hoge" class="primula.api.core.interim.shell.command.ProcessCommand"/>
+    <component name="fuga" class="primula.api.core.interim.shell.command.ExitCommand"/>
+   -->
+    <!-- コンポーネントの登録用設定 -->
+
+    <component name="commandRegister"  class="org.seasar.framework.container.autoregister.FileSystemComponentAutoRegister">
+        <property name="autoNaming">
+            <component class="org.seasar.framework.container.autoregister.DefaultAutoNaming" />
+        </property>
+        <initMethod name="addClassPattern">
+            <arg>"primula.api.core.interim.shell.command"</arg>
+            <arg>".*Command"</arg>
+        </initMethod>
+        <initMethod name="addIgnoreClassPattern">
+            <arg>"primula.api.core.interim.shell.command"</arg>
+            <arg>"AbstractCommand"</arg>
+        </initMethod>
+    </component>
+
+</components>   

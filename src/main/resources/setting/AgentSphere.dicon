@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE components PUBLIC "-//SEASAR//DTD S2Container 2.4//EN"
+          "http://www.seasar.org/dtd/components24.dtd">
+<components>
+    <component name="Interpreter" class="primula.api.core.assh.Interpreter"/>
+    <component name="ConfirmReceiver" class="primula.api.core.network.receiver.testsocket.ConfirmReceiver"/>
+    <component name="ConfirmSender" class="primula.api.core.network.receiver.testsocket.ConfirmSender"/>
+    <component name="AgentManager" class="primula.api.core.agent.AgentManager"/>
+    <component name="MessageServer" class="primula.api.core.network.MessageServer"/>
+    <component name="CommunicationReceiver" class="primula.api.core.network.CommunicationReceiver"/>
+    <component name="CommunicationSender" class="primula.api.core.network.CommunicationSender"></component>
+
+    <component name="EasySphereNetworkManeger" class="sphereConnection.EasySphereNetworkManeger"/>
+    <!-- <component name="EasyDistributeHashTable" class="sphereConnection.EasyDistributeHashTable"/> -->
+    <component name="SphereFileSystem" class="sphereIO.system.SphereFileSystem"></component>
+    <component name="ChordManeger" class="primula.api.core.network.dhtmodule3.ChordManeger"/>
+    <!-- <component name="ModuleTest" class="mikamiyama.ModuleTest"/> --> <!-- @author Mikamiyama -->
+    <!-- <component name="WebSchedulingModule" class="AgentSphereWeb.WebSchedulingModule"/> --> <!-- @author Mikamiyama -->
+</components>
