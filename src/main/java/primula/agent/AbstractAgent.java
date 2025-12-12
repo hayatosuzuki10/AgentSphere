@@ -22,7 +22,6 @@ import primula.api.core.resource.SystemResource;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 import scheduler2022.ClockSpeed;
-import scheduler2022.DynamicPCInfo;
 import scheduler2022.MemoryMeasure;
 import scheduler2022.Scheduler;
 import scheduler2022.util.DHTutil;
@@ -84,11 +83,6 @@ public abstract class AbstractAgent extends SystemResource
     public boolean shouldMove = false;
     public String nextDestination;
     
-    private double LearningRate = 0.5;
-    public String charactaristicsTemplete = "Balanced";
-    public DynamicPCInfo DPIBeforeChange;
-    public DynamicPCInfo DPIAfterChange;
-    public DynamicPCInfo DPIChange;
     
     
     public double priority = 0.5;
@@ -119,10 +113,25 @@ public abstract class AbstractAgent extends SystemResource
 	 * オーバーロードする場合は必ずsuper()で加えること
 	 */
 	public AbstractAgent() {
-		super();
-		setAgentID(genarateUniqeID());
-		setMyIP();
-		
+	    super();
+	    setAgentID(genarateUniqeID());
+	    setMyIP();
+
+	    try {
+	        primula.agent.util.DHTutil.setAgentIP(getAgentID(), Inet4Address.getByName(IPAddress.myIPAddress));
+	    } catch (UnknownHostException e1) {
+	        throw new RuntimeException("IPアドレス設定が不正です");
+	    }
+
+	    // AgentInfo を1回だけ取得してキャッシュ
+	    this.info = DHTutil.getAgentInfo(getAgentID());
+	    if (this.info == null) {
+	        this.info = new AgentInfo(this);
+	        this.info.setAgentId(getAgentID());
+	        this.info.setAgentName(getAgentName());
+	        this.info.ipAddress = IPAddress.myIPAddress;
+	        DHTutil.setAgentInfo(getAgentID(), this.info);
+	    }
 	}
 	
 
@@ -178,8 +187,6 @@ public abstract class AbstractAgent extends SystemResource
 		 * Continuationがnullの場合はrun()メソッドを始めから実行する
 		 */
 		this.threadId = Thread.currentThread().getId();
-        System.out.println("[Agent] " + getAgentName() + " running on thread " + threadId);
-
 		
 		try {
 			primula.agent.util.DHTutil.setAgentIP(getAgentID(), Inet4Address.getByName(IPAddress.myIPAddress));
@@ -221,7 +228,6 @@ public abstract class AbstractAgent extends SystemResource
 			//System.out.println("//Migration//");
 			//System.err.println(this.getAgentName() + ":Migration to " + address.getKey().getHostAddress());
 
-			System.out.println("hi 3");
 			primula.agent.util.DHTutil.removeAgentIP(getAgentID());
 
 			AgentAPI.migration(address, this);
@@ -259,21 +265,17 @@ public abstract class AbstractAgent extends SystemResource
 
 	protected @continuable void migrate() {
 
-		System.out.println("hi 1");
 		if (this.address != null) {
 
 			if (this.address.isLoopbackAddress()
 					|| this.address.getHostAddress().equals(IPAddress.myIPAddress)
 					|| !forcedmove) {
 
-				System.out.println("hi 1 1"+this.address.isLoopbackAddress()+this.address.getHostAddress().equals(IPAddress.myIPAddress)
-						+forcedmove);
 				return;
 			}
 		}
 		
 		if(this.progress > 0.9) {
-			System.out.println("hi 1 2");
 			return;
 		}
 		
@@ -292,12 +294,10 @@ public abstract class AbstractAgent extends SystemResource
 		if (!ContinuationFlag) {
 			ContinuationFlag = true;
 
-			System.out.println("hi 1 4");
 		}
 			previousMigrateTime = System.nanoTime();
 			Continuation.suspend();
 
-			System.out.println("hi 2");
 	}
 
 	/**
@@ -305,7 +305,6 @@ public abstract class AbstractAgent extends SystemResource
 	 * @param address
 	 */
 	public @continuable void migrate(InetAddress address) {
-		System.out.println("hi 1");
 		this.address = address;
 		this.migrate();
 	}
@@ -315,7 +314,6 @@ public abstract class AbstractAgent extends SystemResource
 	 * @param address
 	 */
 	public @continuable void migrate(String address) {
-		System.out.println("hi 1");
 		InetAddress addr;
 		try {
 			addr = InetAddress.getByName(address);
@@ -327,10 +325,6 @@ public abstract class AbstractAgent extends SystemResource
 	}
 	
 	
-	private double updateEMA(double newSample, double oldWeight) {
-		double newWeight = LearningRate * newSample + (1-LearningRate) * oldWeight;
-		return newWeight;
-	}
 
 	/**
 	 * バックアップファイルとしてContinuationデータを記録する
