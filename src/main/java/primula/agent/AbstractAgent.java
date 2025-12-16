@@ -5,7 +5,6 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -29,29 +28,16 @@ import sphereConnection.stub.SphereSpec;
 
 public abstract class AbstractAgent extends SystemResource
 		implements Serializable, Runnable, Callable<ContinuationData> {
-	class history {
-		String ip;
-		long time;
-
-		history(String ip, long time) {
-			this.ip = ip;
-			this.time = time;
-		}
-
-	}
+	
 	private AgentInfo info;
 	
-	private long threadId = -1; // ★ 実行中スレッドID保持用
-
-    public long getThreadId() {
-        return threadId;
+    public AgentInfo getAgentInfo() {
+    	return info;
     }
 
 	/* Agent内部データ */
 	private String agentID;
 	private InetAddress myIP;
-	private long time = System.currentTimeMillis(); //起動した時間
-	private List<history> his = new ArrayList<history>();
 
 	/* JavaFlow用データ */
 	public Continuation Javaflow = null;
@@ -85,18 +71,12 @@ public abstract class AbstractAgent extends SystemResource
     
     
     
-    public double priority = 0.5;
     
     public double progress = -1;
-    public long migrateTime = 0L;
-    public long previousMigrateTime = 0L;
     
 
 
-	public long getElapsedTime() {
-		long temp = System.currentTimeMillis();
-		return temp - time;
-	}
+	
 
 	public void forcedMove(String ad) {
 		try {
@@ -124,24 +104,20 @@ public abstract class AbstractAgent extends SystemResource
 	    }
 
 	    // AgentInfo を1回だけ取得してキャッシュ
-	    this.info = DHTutil.getAgentInfo(getAgentID());
-	    if (this.info == null) {
-	        this.info = new AgentInfo(this);
-	        this.info.setAgentId(getAgentID());
-	        this.info.setAgentName(getAgentName());
-	        this.info.ipAddress = IPAddress.myIPAddress;
-	        DHTutil.setAgentInfo(getAgentID(), this.info);
+	    info = DHTutil.getAgentInfo(getAgentID());
+	    if (info == null) {
+	        info = new AgentInfo(this);
+	        info.setAgentId(getAgentID());
+	        info.setAgentName(getAgentName());
+	        info.ipAddress = IPAddress.myIPAddress;
+	        DHTutil.setAgentInfo(getAgentID(), info);
 	    }
+
+		info.startTime = System.currentTimeMillis();
 	}
 	
 
-	/**
-	 * @author Mikamiyama
-	 * @return
-	 */
-	public long getTime() {
-		return this.time;
-	}
+
 
 	/**
 	 * エージェントIDとして割り当てるためにユニークIDを生成する
@@ -151,6 +127,16 @@ public abstract class AbstractAgent extends SystemResource
 		return UUID.randomUUID().toString();
 	}
 
+	private void setMyIP() {
+		if (myIP == null) {
+			try {
+				this.myIP = InetAddress.getLocalHost();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	/**
 	 * このエージェントのエージェントIDを返す
 	 * @return
@@ -186,7 +172,7 @@ public abstract class AbstractAgent extends SystemResource
 		/* 初回起動時
 		 * Continuationがnullの場合はrun()メソッドを始めから実行する
 		 */
-		this.threadId = Thread.currentThread().getId();
+		info.threadId = Thread.currentThread().getId();
 		
 		try {
 			primula.agent.util.DHTutil.setAgentIP(getAgentID(), Inet4Address.getByName(IPAddress.myIPAddress));
@@ -201,9 +187,9 @@ public abstract class AbstractAgent extends SystemResource
 			
 		} else {
 			//同上 
-			migrateTime = System.nanoTime() - previousMigrateTime;
+			info.migrateTime = System.nanoTime() - info.previousMigrateTime;
 			AgentInfo info = DHTutil.getAgentInfo(agentID);
-			info.migrateTime = this.migrateTime;
+			info.migrateTime = this.info.migrateTime;
 			Javaflow = Javaflow.resume();
 		}
 
@@ -243,7 +229,7 @@ public abstract class AbstractAgent extends SystemResource
 
 		if (!DHTutil.containsSpec(myname)) {
 			ed = System.currentTimeMillis();
-			processingtime = ed - time;
+			processingtime = ed - info.startTime;
 			usingmemory = mm.memory_measure(Thread.currentThread().getId());
 			SphereSpec ss = new SphereSpec(clock, processingtime, usingmemory);
 			DHTutil.setSpec(myname, ss);
@@ -289,13 +275,13 @@ public abstract class AbstractAgent extends SystemResource
 //		}
 
 		// ここまで来たら移動OKなので、今回を「前回移動」に更新
-		previousMigrateTime = now;
+		info.previousMigrateTime = now;
 		
 		if (!ContinuationFlag) {
 			ContinuationFlag = true;
 
 		}
-			previousMigrateTime = System.nanoTime();
+			info.previousMigrateTime = System.nanoTime();
 			Continuation.suspend();
 
 	}
@@ -362,26 +348,8 @@ public abstract class AbstractAgent extends SystemResource
 		return agent_list;
 	}
 
-	/**
-	 * フラグを取得し、フラグの値に応じて
-	 * シングルエージェントのためのsingleRunかマルチエージェントのためのmultiRunを呼び出す
-	 * @param i
-	 */
-	/*
-	public void say(int i){
-		System.out.println(this.getClass()+" : say method called...");
-	}
-	*/
 
-	private void setMyIP() {
-		if (myIP == null) {
-			try {
-				this.myIP = InetAddress.getLocalHost();
-			} catch (UnknownHostException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+
 
 	boolean status_flag = false;
 
@@ -544,25 +512,12 @@ public abstract class AbstractAgent extends SystemResource
 		//		Thread.currentThread().stop(5);
 	}
 
-	public void RegistarHistory(String ip) {
-		long time = System.currentTimeMillis() - this.time;
-		for (int i = 0; i < his.size(); i++) {
-			time -= his.get(i).time;
-		}
-		//history h=new history(ip,time);
-		//his.add(h);
-		his.add(new history(ip, time));
-	}
 
-	public long getHistoryTime(int num) {
-		//		his.push(new);
-		return his.get(num).time;
-	}
-	
 
 	public synchronized void moveByExternal(String nextDirectionIP) {
 		this.nextDestination = nextDirectionIP;
 		this.shouldMove = true;
 	}
+
 
 }

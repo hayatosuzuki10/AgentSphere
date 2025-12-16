@@ -16,7 +16,6 @@ import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 import scheduler2022.DynamicPCInfo;
 import scheduler2022.Scheduler;
-import scheduler2022.util.DHTutil;
 
 public class Strategy2022 implements SchedulerStrategy {
 
@@ -29,7 +28,7 @@ public class Strategy2022 implements SchedulerStrategy {
 	@Override
 	public void initialize() {
 
-		Set<String> currentIPs = DHTutil.getAllSuvivalIPaddresses();
+		Set<String> currentIPs = Scheduler.getAliveIPs();
 		Map<String, Double> nextmigratehint = new ConcurrentHashMap<>();
 		Map<String, Integer> nextAgentnumsMap = new ConcurrentHashMap<>();
 		int nextallAgents = 0;
@@ -37,7 +36,7 @@ public class Strategy2022 implements SchedulerStrategy {
 		double sumla = 0;
 		
 		for (String ip : currentIPs) {
-			DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
+			DynamicPCInfo dpi = Scheduler.getDpis().get(ip);
 			if (dpi != null && dpi.LoadAverage > 0.0) { //計測してない場合もあるのでその時はやらない
 				nextAgentnumsMap.put(ip, dpi.AgentsNum);
 				nextallAgents += dpi.AgentsNum;

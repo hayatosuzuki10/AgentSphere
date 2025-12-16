@@ -5,14 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.seasar.framework.container.factory.SingletonS2ContainerFactory;
-
 import primula.api.DHTChordAPI;
 import primula.api.core.agent.AgentInfo;
-import scheduler2022.DynamicPCInfo;
 import scheduler2022.Scheduler;
-import scheduler2022.StaticPCInfo;
-import sphereConnection.EasySphereNetworkManeger;
 import sphereConnection.stub.SphereSpec;
 
 /**
@@ -30,6 +25,7 @@ public class DHTutil {
 	private static final String AcceptableCode = "acceptable:";
 	private static final String AgentCode = "agent";
 	private static long timeStampExpire = Scheduler.getTimeStampExpire();
+	private static int skipCount = 0;
 
 	public static void setSpec(String key, SphereSpec spec) {
 		DHTChordAPI.put(keyCode + SpecCode + key, spec);
@@ -42,40 +38,7 @@ public class DHTutil {
 	public static boolean containsSpec(String key) {
 		return DHTChordAPI.contains(keyCode + SpecCode + key);
 	}
-
-	public static void setPcInfo(String key, DynamicPCInfo cpi) {
-	    long now = System.currentTimeMillis();
-	    DynamicPCInfo prevDPI = DHTutil.getPcInfo(key);
-
-	    // ① 今回が予測なら、常にセットしてよい
-	    if (cpi.isForecast) {
-	        DHTChordAPI.put(keyCode + PICode + key, cpi);
-	        DHTChordAPI.put(keyCode + PIStampCode + key, Instant.now());
-	        System.out.println("}}}}}}}}}}}}}}}}}");
-	        return;
-	    }
-
-	    // ② 今回が実値 → 前回が有効な予測なら、上書き禁止
-	    boolean prevIsValidForecast =
-	            prevDPI != null &&
-	            prevDPI.isForecast &&
-	            (prevDPI.timeStanp + timeStampExpire > now);
-
-	    if (prevIsValidForecast) {;
-	        System.out.println("||||||||||||||||||||| skip real because prev forecast still valid");
-	        return;
-	    }
-
-	    // ③ それ以外はセットしてよい
-	    DHTChordAPI.put(keyCode + PICode + key, cpi);
-	    DHTChordAPI.put(keyCode + PIStampCode + key, Instant.now());
-	    System.out.println("+++++++++++++++" );
-	}
 	
-	public static void setStaticPCInfo(String key, StaticPCInfo spi) {
-		DHTChordAPI.put(keyCode + StaticPICode + key, spi);
-		DHTChordAPI.put(keyCode + StaticPIStampCode + key, Instant.now());
-	}
 
 	public static void setAcceptable(String key, boolean canAccept) {
 		DHTChordAPI.put(keyCode + AcceptableCode + key, canAccept);
@@ -87,14 +50,6 @@ public class DHTutil {
 	
 	public static boolean containsAgent(String key) {
 		return DHTChordAPI.contains(keyCode + AgentCode + key);
-	}
-
-	public static DynamicPCInfo getPcInfo(String key) {
-		return (DynamicPCInfo) DHTChordAPI.get(keyCode + PICode + key);
-	}
-	
-	public static StaticPCInfo getStaticPCInfo(String key) {
-		return (StaticPCInfo) DHTChordAPI.get(keyCode + StaticPICode + key);
 	}
 
 	public static Instant getPcInfoTimeStamp(String key) {
@@ -110,15 +65,6 @@ public class DHTutil {
 		return (AgentInfo) DHTChordAPI.get(keyCode + AgentCode + key);
 	}
 	
-	public static void removePcInfo(String key) {
-		DHTChordAPI.remove(keyCode + PICode + key);
-		DHTChordAPI.remove(keyCode + PIStampCode + key);
-	}
-	
-	public static void removeStaticPCInfo(String key) {
-		DHTChordAPI.remove(keyCode + StaticPICode + key);
-		DHTChordAPI.remove(keyCode + StaticPIStampCode + key);
-	}
 	
 	public static void removeAcceptable(String key) {
 		DHTChordAPI.remove(keyCode + AcceptableCode + key);
@@ -145,17 +91,4 @@ public class DHTutil {
 	}
 	
 
-	synchronized public static Set<String> getAllSuvivalIPaddresses() {
-		// TODO 自動生成されたメソッド・スタブ
-		Set<String> allIPaddresses = new HashSet<>();
-		Instant comp = Instant.now().minusSeconds(60);
-		for (String key : ((EasySphereNetworkManeger) SingletonS2ContainerFactory.getContainer()
-				.getComponent("EasySphereNetworkManeger")).getIPTable()) {
-			Instant temp = getPcInfoTimeStamp(key);
-			if (temp!=null&&temp.isAfter(comp)) {
-				allIPaddresses.add(key);
-			}
-		}
-		return allIPaddresses;
-	}
 }

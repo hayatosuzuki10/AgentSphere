@@ -87,7 +87,7 @@ class RunningAgentPool {
 						String agentID = agentThread.getAgent().getAgentID();
 						agentInfo.setAgentName(agentThread.getAgent().getAgentName());
 						agentInfo.setAgentId(agentID);
-						agentInfo.setTime(agentThread.getAgent().getTime());
+						agentInfo.setTime(agentInfo.startTime);
 						agentInfo.setAgent(agentThread.getAgent());
 						list.get(string).add(agentInfo);
 						if(DHTutil.getAgentInfo(agentID)==null) {

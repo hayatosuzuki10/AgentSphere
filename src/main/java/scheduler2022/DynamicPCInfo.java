@@ -228,6 +228,44 @@ public class DynamicPCInfo implements Serializable {
 	    out.timeStanp  = this.timeStanp;     // 既存フィールド名に合わせてそのまま
 	    return out;
 	}
+	
+	@JsonIgnore
+	public boolean hasSignificantChange(DynamicPCInfo prev) {
+	    if (prev == null) return true;
+
+	    if (Math.abs(this.timeStanp - prev.timeStanp) < 500) {
+	        return false;
+	    }
+
+	    if (this.CPU != null && prev.CPU != null) {
+	        if (Math.abs(this.CPU.LoadPercentByMXBean
+	                   - prev.CPU.LoadPercentByMXBean) > 0.10) {
+	            return true;
+	        }
+	    }
+
+	    if (this.Memory != null && prev.Memory != null) {
+	        long diff = Math.abs(this.Memory.JvmHeapUsed
+	                           - prev.Memory.JvmHeapUsed);
+	        long base = Math.max(1L, prev.Memory.JvmHeapUsed);
+	        if ((double) diff / base > 0.20) return true;
+	    }
+
+	    if (this.AgentsNum != prev.AgentsNum) return true;
+
+	    if (this.GPUs != null && prev.GPUs != null) {
+	        for (String k : this.GPUs.keySet()) {
+	            GPU a = this.GPUs.get(k);
+	            GPU b = prev.GPUs.get(k);
+	            if (a != null && b != null &&
+	                Math.abs(a.LoadPercent - b.LoadPercent) > 15) {
+	                return true;
+	            }
+	        }
+	    }
+
+	    return false;
+	}
 
 	/* ===== 差分（既存ロジックは保持、Null安全を強化） ===== */
 	@JsonIgnore
