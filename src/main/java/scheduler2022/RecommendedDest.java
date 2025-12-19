@@ -20,7 +20,7 @@ public class RecommendedDest {
     public RecommendedDest() {}
 
     static public boolean elsePCsurvival() {
-        return Scheduler.getAliveIPs().size() > 1;
+        return DHTutil.getAllSuvivalIPaddresses().size() > 1;
     }
 
     /** pcInfo が null の場合は false を返すように変更 */
@@ -75,8 +75,8 @@ public class RecommendedDest {
 
         long agentusedmem = spec.memoryused;
 
-        for (String key : Scheduler.getAliveIPs()) {
-            DynamicPCInfo pcInfo = Scheduler.getDpis().get(key);
+        for (String key : DHTutil.getAllSuvivalIPaddresses()) {
+            DynamicPCInfo pcInfo = DHTutil.getPcInfo(key);
             if (IPAddress.myIPAddress.equals(key)) {
                 continue;
             }
@@ -96,7 +96,7 @@ public class RecommendedDest {
         String recomm = IPAddress.myIPAddress;
 
         // 自ノードの情報を安全に取得
-        DynamicPCInfo selfInfo = Scheduler.getDpis().get(IPAddress.myIPAddress);
+        DynamicPCInfo selfInfo = DHTutil.getPcInfo(IPAddress.myIPAddress);
         double minLoadAverage =
                 (selfInfo != null && selfInfo.LoadAverage >= 0)
                         ? selfInfo.LoadAverage
@@ -107,8 +107,8 @@ public class RecommendedDest {
 
         if (!hasSpec) {
             // ---- スペック情報が無い場合：単純に LoadAverage が最小のノードを探す ----
-            for (String key : Scheduler.getAliveIPs()) {
-                DynamicPCInfo pcInfo = Scheduler.getDpis().get(key);
+            for (String key : DHTutil.getAllSuvivalIPaddresses()) {
+                DynamicPCInfo pcInfo = DHTutil.getPcInfo(key);
                 if (pcInfo == null) {
                     System.err.println(RecommendedDest.class.getName()
                             + ": pcInfo is null for " + key);
@@ -132,8 +132,8 @@ public class RecommendedDest {
                         + ": spec is null for " + agentname
                         + ", fallback to LoadAverage only.");
                 // スペック取れない場合は上と同じロジックでフォールバック
-                for (String key : Scheduler.getAliveIPs()) {
-                    DynamicPCInfo pcInfo = Scheduler.getDpis().get(key);
+                for (String key : DHTutil.getAllSuvivalIPaddresses()) {
+                    DynamicPCInfo pcInfo = DHTutil.getPcInfo(key);
                     if (pcInfo == null) {
                         System.err.println(RecommendedDest.class.getName()
                                 + ": pcInfo is null for " + key);
@@ -148,8 +148,8 @@ public class RecommendedDest {
                 }
             } else {
                 long agentusedmem = spec.memoryused;
-                for (String key : Scheduler.getAliveIPs()) {
-                    DynamicPCInfo pcInfo = Scheduler.getDpis().get(key);
+                for (String key : DHTutil.getAllSuvivalIPaddresses()) {
+                    DynamicPCInfo pcInfo = DHTutil.getPcInfo(key);
                     if (pcInfo == null) {
                         System.err.println(RecommendedDest.class.getName()
                                 + ": pcInfo is null for " + key);

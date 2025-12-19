@@ -144,67 +144,6 @@
   <artifactId>jocl</artifactId>
   <version>2.0.4</version>
 </dependency>
-		<dependency>
-			<groupId>org.deeplearning4j</groupId>
-			<artifactId>deeplearning4j-core</artifactId>
-			<version>1.0.0-M2.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.nd4j</groupId>
-			<artifactId>nd4j-native-platform</artifactId>
-			<version>1.0.0-M2.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.nd4j</groupId>
-    		<artifactId>nd4j-cuda-11.6-platform</artifactId>
-    		<version>1.0.0-M2.1</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.deeplearning4j/deeplearning4j-datasets 2022/11/30追加 -->
- 
-<dependency>
-    <groupId>org.deeplearning4j</groupId>
-    <artifactId>deeplearning4j-datasets</artifactId>
-    <version>1.0.0-M2.1</version>
-</dependency>
- 
-<!-- https://mvnrepository.com/artifact/org.deeplearning4j/deeplearning4j-nn 2022/11/30追加 -->
-<dependency>
-    <groupId>org.deeplearning4j</groupId>
-    <artifactId>deeplearning4j-nn</artifactId>
-    <version>1.0.0-M2.1</version>
-</dependency>
- 
-<!-- CIFAR-10 データセットを含む追加モジュール -->
-<dependency>
-    <groupId>org.deeplearning4j</groupId>
-    <artifactId>deeplearning4j-zoo</artifactId>
-    <version>1.0.0-M2.1</version>
-</dependency>
- 
-<!-- ND4J の API（ListDataSetIterator が含まれる） -->
-<dependency>
-    <groupId>org.nd4j</groupId>
-    <artifactId>nd4j-api</artifactId>
-    <version>1.0.0-M2.1</version>
-</dependency>
- 
-<!-- CPU用（Windows/Linux/Mac） -->
-<dependency>
-    <groupId>org.nd4j</groupId>
-    <artifactId>nd4j-native-platform</artifactId>
-    <version>1.0.0-M2.1</version>
-</dependency>
- 
-<dependency>
-    <groupId>org.datavec</groupId>
-    <artifactId>datavec-data-image</artifactId>
-    <version>1.0.0-M2.1</version>
-</dependency>
-<dependency>
-			<groupId>org.nd4j</groupId>
-    		<artifactId>nd4j-cuda-11.6-platform</artifactId>
-    		<version>1.0.0-M2.1</version>
-		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.datavec/datavec-api 2022/11/30追加
 			<dependency> <groupId>org.datavec</groupId> <artifactId>datavec-api</artifactId>

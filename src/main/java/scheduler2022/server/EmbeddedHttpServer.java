@@ -42,10 +42,12 @@ public class EmbeddedHttpServer {
         server.createContext("/dynamic", new HttpHandler() {
             public void handle(HttpExchange exchange) throws IOException {
 
-            	Set<String> allIPAddresses = Scheduler.getAliveIPs();
+            	Set<String> allIPAddresses = DHTutil.getAllSuvivalIPaddresses();
             	allIPAddresses.add(IPAddress.myIPAddress);
-            	Map<String, DynamicPCInfo> dynamicPCInfos = Scheduler.getDpis();
-            	
+            	Map<String, DynamicPCInfo> dynamicPCInfos = new HashMap<String, DynamicPCInfo>();
+            	for (String ip : allIPAddresses) {
+            	    dynamicPCInfos.put(ip, DHTutil .getPcInfo(ip));
+            	}
             	Map<String, AgentInfo> agentInfos = new HashMap<String, AgentInfo>();
             	Set<String> allAgentIDs = DHTutil.getAllAgentIDs();
             	for(String agentID: allAgentIDs) {
@@ -72,10 +74,12 @@ public class EmbeddedHttpServer {
         
         server.createContext("/static", new HttpHandler() {
             public void handle(HttpExchange exchange) throws IOException {
-            	Set<String> allIPAddresses = Scheduler.getAliveIPs();
+            	Set<String> allIPAddresses = DHTutil.getAllSuvivalIPaddresses();
             	allIPAddresses.add(IPAddress.myIPAddress);
-            	Map<String, StaticPCInfo> staticPCInfos = Scheduler.getSpis();
-            	
+            	Map<String, StaticPCInfo> staticPCInfos = new HashMap<String, StaticPCInfo>();
+            	for (String ip : allIPAddresses) {
+            	    staticPCInfos.put(ip, DHTutil.getStaticPCInfo(ip));
+            	}
         		Map<String, Object> staticPack = new HashMap<>();
         		staticPack.put("serverIPAddress", IPAddress.myIPAddress);
         		staticPack.put("allIPAddresses", allIPAddresses);

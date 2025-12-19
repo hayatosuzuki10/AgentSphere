@@ -28,6 +28,7 @@ import scheduler2022.DynamicPCInfo;
 import scheduler2022.JudgeOS;
 import scheduler2022.Scheduler;
 import scheduler2022.collector.DynamicPcInfoCollector;
+import scheduler2022.util.DHTutil;
 import sphereConnection.stub.SphereSpec;
 
 /**
@@ -504,7 +505,7 @@ public class EasyDistributeHashTable implements ICoreModule {
 	    if (JudgeOS.isWindows()) tmp += 1.0;
 
 	    final double la = tmp; 
-	    DynamicPCInfo prevDPI = Scheduler.getDpis().get(IPAddress.myIPAddress);
+	    DynamicPCInfo prevDPI = DHTutil.getPcInfo(IPAddress.myIPAddress);
 	    DynamicPCInfo dpi;
 	    if (prevDPI != null && prevDPI.isForecast
 	            && prevDPI.timeStanp + Scheduler.getTimeStampExpire() > System.currentTimeMillis()) {
@@ -513,24 +514,13 @@ public class EasyDistributeHashTable implements ICoreModule {
 
 	    } else {
 	    	dpi = collector.collect(
-	    			Scheduler.getAliveIPs(),
+		            DHTutil.getAllSuvivalIPaddresses(),
 		            Scheduler.getReceiverPort() + 1,
 		            Scheduler.isFirst(),
 		            Scheduler.snapshot.gcCount,          // JFRからの値
 		            Scheduler.snapshot.gcPauseMillis     // JFRからの値
 		    );
-
-		    long now = System.currentTimeMillis();
-		    if (
-		    	    prevDPI == null
-		    	    || prevDPI.timeStanp + Scheduler.getTimeStampExpire() <= now
-		    	    || !prevDPI.isForecast
-		    	    || dpi.isForecast
-		    	) {
-
-			    Scheduler.getDpis().put(IPAddress.myIPAddress, dpi);
-		    	}
-		    Scheduler.getPublisher().publishIfChanged(dpi);
+	        Scheduler.getPcInfoRepo().saveDynamic(IPAddress.myIPAddress, dpi);
 	    }
 	    
 	    setPcInfo(myIP, dpi);

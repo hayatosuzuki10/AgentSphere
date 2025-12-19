@@ -24,6 +24,7 @@ import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
 import scheduler2022.Scheduler;
 import scheduler2022.StaticPCInfo;
+import scheduler2022.util.DHTutil;
 
 public class demo extends AbstractCommand {
 	
@@ -49,10 +50,10 @@ public class demo extends AbstractCommand {
 //		th.setName("AgentSchedule2022");
 //		th.start();
 //		System.out.println("スケジューラ起動！！");
-		Set<String> currentIPs = Scheduler.getAliveIPs();
+		Set<String> currentIPs = DHTutil.getAllSuvivalIPaddresses();
 		currentIPs.add(IPAddress.myIPAddress);
 		for(String ip : currentIPs) {
-			StaticPCInfo spi = Scheduler.getSpis().get(ip);
+			StaticPCInfo spi = DHTutil.getStaticPCInfo(ip);
 			staticPCInfos.put(ip, spi);
 		}
         long startTime = System.currentTimeMillis();
@@ -74,7 +75,7 @@ public class demo extends AbstractCommand {
         // 全エージェント終了待ち（isAliveがfalseになるまでループ）
         while (agentsAlive < agentsNum) {
             for (String ip : currentIPs) {
-                DynamicPCInfo dpi = Scheduler.getDpis().get(ip);
+                DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
 
                 // まず null & 明らかに無効なものはスキップ
                 if (dpi == null || dpi.LoadAverage < 0) {

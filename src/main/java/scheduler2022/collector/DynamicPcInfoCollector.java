@@ -357,7 +357,7 @@ return dpi;
                 if (bootAgents.contains(info.getAgentName())) continue;
 
                 Agent a = new Agent();
-                long threadId = info.threadId;
+                long threadId = info.getAgent().getThreadId();
                 a.ID        = info.getAgentId();
                 a.Name      = info.getAgentName();
                 a.StartTime = info.getTime();

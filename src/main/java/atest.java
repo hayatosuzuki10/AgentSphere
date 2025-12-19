@@ -4,7 +4,6 @@ import java.util.List;
 import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.api.core.agent.AgentInfo;
-import scheduler2022.Scheduler;
 import scheduler2022.util.DHTutil;
 
 public class atest extends AbstractAgent{
@@ -20,7 +19,7 @@ public class atest extends AbstractAgent{
 			System.out.println(DHTutil.getSpec(this.getAgentName()).spec);
 			System.out.println(DHTutil.getSpec(this.getAgentName()).time);
 		}
-		for(String key : Scheduler.getAliveIPs()) {
+		for(String key : DHTutil.getAllSuvivalIPaddresses()) {
 			System.out.println(key);
 		}
 	}
