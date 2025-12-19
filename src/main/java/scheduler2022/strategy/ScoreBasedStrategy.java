@@ -305,10 +305,10 @@ public class ScoreBasedStrategy implements SchedulerStrategy{
         double nomalizedNetworkDemand = info.networkUpChange / 100000;
         matchScore += nomalizedNetworkDemand * (1- nomalizedNetworkSpeed);
         
-        matchScore += agent.priority * (1- dynamicPCInfo.LoadAverage / staticPCInfo.CPU.LogicalCore);
+        matchScore += info.priority * (1- dynamicPCInfo.LoadAverage / staticPCInfo.CPU.LogicalCore);
         
         double migrateCostWeight = 0.5;
-        double nomalizedMigrateCost = (agent.migrateTime - 10) / 5000;
+        double nomalizedMigrateCost = (info.migrateTime - 10) / 5000;
         double networkMigrateSpeedScore = 0;
         for(Map.Entry<String, DynamicPCInfo.NetworkSpeed> entry : dynamicPCInfo.NetworkSpeeds.entrySet()) {
         	if(entry.getKey() == IPAddress.myIPAddress) {

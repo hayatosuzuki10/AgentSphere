@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import primula.agent.AbstractAgent;
 import primula.api.SystemAPI;
@@ -56,8 +58,11 @@ class RunningAgentPool {
 		CPUPerformaceMeasure.add(agentThread); // エージェントの平均CPU使用率を求めるための追加 2014/01/20
 
     	agentThread.start();
-        new Thread(() -> Scheduler.analyze.analyze(agentThread.getAgent().getAgentID()), "Analyze-agent-123").start();
-       
+    	ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    	executor.submit(() -> {
+    	    Scheduler.analyze.analyze(agentThread.getAgent().getAgentID());
+    	});
 		
 	}
 
@@ -87,7 +92,7 @@ class RunningAgentPool {
 						String agentID = agentThread.getAgent().getAgentID();
 						agentInfo.setAgentName(agentThread.getAgent().getAgentName());
 						agentInfo.setAgentId(agentID);
-						agentInfo.setTime(agentThread.getAgent().getTime());
+						agentInfo.setTime(agentInfo.startTime);
 						agentInfo.setAgent(agentThread.getAgent());
 						list.get(string).add(agentInfo);
 						if(DHTutil.getAgentInfo(agentID)==null) {
