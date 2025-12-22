@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import primula.agent.AbstractAgent;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
 import scheduler2022.Scheduler;
@@ -128,7 +128,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy{
 	private void setTemporaryPrediction(AbstractAgent agent, String destination) {
 	    StaticPCInfo spi = DHTutil.getStaticPCInfo(destination);
 	    DynamicPCInfo prevDPI = DHTutil.getPcInfo(destination);
-	    AgentInfo agentInfo = DHTutil.getAgentInfo(agent.getAgentID());
+	    AgentInstanceInfo agentInfo = DHTutil.getAgentInfo(agent.getAgentID());
 
 	    if (spi == null || prevDPI == null || agentInfo == null) {
 	        System.out.printf("[PREDICT-SKIP] dst=%s spi=%s dpi=%s agentInfo=%s%n",
@@ -188,7 +188,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy{
 		
 		boolean meet = true;
 		
-		AgentInfo info = DHTutil.getAgentInfo(agent.getAgentID());
+		AgentInstanceInfo info = DHTutil.getAgentInfo(agent.getAgentID());
 		if(info == null) return false;
 		meet = meet && hasMeetCPUDemand(info.cpuChange, dynamicPCInfo.CPU, staticPCInfo.CPU);
 		meet = meet && hasMeetGPUDemand(info.gpuChange, dynamicPCInfo.GPUs, staticPCInfo.GPUs);
@@ -277,7 +277,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy{
 			) {
 		
 		double matchScore = 0;
-		AgentInfo info = DHTutil.getAgentInfo(agent.getAgentID());
+		AgentInstanceInfo info = DHTutil.getAgentInfo(agent.getAgentID());
 		double nomalizedCPUBenchmarkScore = (staticPCInfo.CPU.BenchMarkScore - 8000.0) / 60000;
 		if(info == null) {
 			return 0;

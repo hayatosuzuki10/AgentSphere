@@ -19,7 +19,7 @@ import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo.Agent;
 import scheduler2022.Scheduler;
 
-public class AgentInfo implements Serializable{
+public class AgentInstanceInfo implements Serializable{
 	
 		public String id;
 		public String name;
@@ -155,11 +155,11 @@ public class AgentInfo implements Serializable{
 		@JsonIgnore
 		private AbstractAgent agent;
 		
-		public AgentInfo(AbstractAgent agent) {
+		public AgentInstanceInfo(AbstractAgent agent) {
 			this.agent =agent;
 		}
 		
-	    public AgentInfo(
+	    public AgentInstanceInfo(
 	            String id,
 	            String name,
 	            String ipAddress,
@@ -227,7 +227,7 @@ public class AgentInfo implements Serializable{
 		@JsonIgnore
 		public Map<String, Agent> getAgents(){
 			Map<String, Agent> agents = new HashMap<>();
-			HashMap<String,List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+			HashMap<String,List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
 			S2Container factory = S2ContainerFactory.create("./setting/StartupAgent.dicon");//diconの中身が読み込まれ、Agentとして起動される
 			List<String> agentNames = new ArrayList<>();
 			for (int i = 0; i < factory.getComponentDefSize(); i++) {
@@ -237,7 +237,7 @@ public class AgentInfo implements Serializable{
 			}
 
 			for(String string:agentInfos.keySet()){
-	            for(AgentInfo info:agentInfos.get(string)){
+	            for(AgentInstanceInfo info:agentInfos.get(string)){
 	            	if(agentNames.contains(info.getAgentName()))
 	            		continue;
 	            	Agent agent = new Agent();

@@ -80,15 +80,15 @@ class RunningAgentPool {
 		}
 	}
 
-	public synchronized HashMap<String, List<AgentInfo>> getAgentInfos() {
-		HashMap<String, List<AgentInfo>> list = new HashMap<String, List<AgentInfo>>();
+	public synchronized HashMap<String, List<AgentInstanceInfo>> getAgentInfos() {
+		HashMap<String, List<AgentInstanceInfo>> list = new HashMap<String, List<AgentInstanceInfo>>();
 		for (String string : agentPool.keySet()) {
-			list.put(string, new ArrayList<AgentInfo>());
+			list.put(string, new ArrayList<AgentInstanceInfo>());
 			List<AgentThread> agentlist = agentPool.get(string);
 			synchronized (agentlist) {
 				for (AgentThread agentThread : agentlist) {
 					try {
-						AgentInfo agentInfo = new AgentInfo(agentThread.getAgent());
+						AgentInstanceInfo agentInfo = new AgentInstanceInfo(agentThread.getAgent());
 						String agentID = agentThread.getAgent().getAgentID();
 						agentInfo.setAgentName(agentThread.getAgent().getAgentName());
 						agentInfo.setAgentId(agentID);

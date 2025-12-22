@@ -25,7 +25,7 @@ import oshi.hardware.HardwareAbstractionLayer;
 import oshi.hardware.NetworkIF;
 import oshi.hardware.VirtualMemory;
 import primula.api.AgentAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
 import scheduler2022.DynamicPCInfo.Agent;
@@ -331,7 +331,7 @@ return dpi;
     private Map<String, Agent> collectAgents() {
         Map<String, Agent> agents = new HashMap<>();
 
-        Map<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+        Map<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
 
         List<String> bootAgents = new ArrayList<>();
         try {
@@ -353,7 +353,7 @@ return dpi;
         Map<Long, Long> allocOutside = Collections.emptyMap();
 
         for (String key : agentInfos.keySet()) {
-            for (AgentInfo info : agentInfos.get(key)) {
+            for (AgentInstanceInfo info : agentInfos.get(key)) {
                 if (bootAgents.contains(info.getAgentName())) continue;
 
                 Agent a = new Agent();

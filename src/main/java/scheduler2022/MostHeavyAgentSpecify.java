@@ -5,7 +5,7 @@ import java.util.List;
 
 import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import scheduler2022.util.DHTutil;
 
 public class MostHeavyAgentSpecify {
@@ -14,12 +14,12 @@ public class MostHeavyAgentSpecify {
 	}
 
 	public AbstractAgent get() {
-		HashMap<String,List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+		HashMap<String,List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
 		long maxmemory = 0;
 		AbstractAgent MostHeavyAgent = null;
 
 		for(String key : agentInfos.keySet())  {
-			for(AgentInfo ai : agentInfos.get(key)) {
+			for(AgentInstanceInfo ai : agentInfos.get(key)) {
 				if(DHTutil.containsSpec(ai.getAgentName())) {
 					long temp = DHTutil.getSpec(ai.getAgentName()).memoryused;
 					if(temp > maxmemory) {

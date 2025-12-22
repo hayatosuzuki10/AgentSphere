@@ -19,7 +19,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.assh.MainPanel;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
@@ -48,10 +48,10 @@ public class EmbeddedHttpServer {
             	for (String ip : allIPAddresses) {
             	    dynamicPCInfos.put(ip, DHTutil .getPcInfo(ip));
             	}
-            	Map<String, AgentInfo> agentInfos = new HashMap<String, AgentInfo>();
+            	Map<String, AgentInstanceInfo> agentInfos = new HashMap<String, AgentInstanceInfo>();
             	Set<String> allAgentIDs = DHTutil.getAllAgentIDs();
             	for(String agentID: allAgentIDs) {
-            		AgentInfo agentInfo = DHTutil.getAgentInfo(agentID);
+            		AgentInstanceInfo agentInfo = DHTutil.getAgentInfo(agentID);
             		agentInfos.put(agentID,agentInfo);
             	}
             	Map<String, Object> dynamicPack = new HashMap<>();

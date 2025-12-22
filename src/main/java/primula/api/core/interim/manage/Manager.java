@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.api.SystemAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.util.KeyValuePair;
 
 /**
@@ -134,10 +134,10 @@ public class Manager extends AbstractAgent{
      * 移動後のASで特定のエージェントを探して、リストを更新する
      */
     private void find(){
-        HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+        HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
         for(String string : agentInfos.keySet()){
             if(string.equals(list.getKey())){
-                for(AgentInfo info : agentInfos.get(string)){
+                for(AgentInstanceInfo info : agentInfos.get(string)){
                     for(int i = 0; i < list.getValue().size(); i++){
                         if(info.getAgentName().equals(list.getValue().get(i).getValue().getKey()) && info.getAgentId().equals(list.getValue().get(i).getValue().getValue())){
                             list.getValue().get(i).setKey(true);

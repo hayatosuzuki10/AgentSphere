@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import scheduler2022.util.DHTutil;
 
 /**
@@ -254,7 +254,7 @@ public class DynamicPCInfoDetector {
          * 「変化あり」の場合だけ値を記録し、それ以外は 0 を記録する方針。
          */
         public void updateAgentInfo(String id) {
-            AgentInfo info = DHTutil.getAgentInfo(id);
+            AgentInstanceInfo info = DHTutil.getAgentInfo(id);
             if (info == null) {
                 // Agent が既に死んでいる / DHT にいないケースの保険
                 return;

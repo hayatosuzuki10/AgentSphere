@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 import primula.agent.util.DHTutil;
 import primula.api.AgentAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.network.message.AbstractEnvelope;
 import primula.api.core.network.message.IMessageListener;
 import primula.api.core.network.message.MessengerAgent;
@@ -102,11 +102,11 @@ public class MessageServer implements IMessageServer {
             AbstractEnvelope newEnvelope;
             newEnvelope = AgentUtil.easyDeepCopy(envelope);
 
-            HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+            HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
             if (!agentInfos.containsKey(group)) {
                 return;
             }
-            for (AgentInfo agentInfo : agentInfos.get(group)) {
+            for (AgentInstanceInfo agentInfo : agentInfos.get(group)) {
                 for (IMessageListener listener : messageListeners) {
                     if ((agentInfo.getAgentId() == null ? listener.getStrictName() == null : agentInfo.getAgentId().equals(listener.getStrictName()))
                             || (agentInfo.getAgentName() == null ? listener.getSimpleName() == null : agentInfo.getAgentName().equals(listener.getSimpleName()))) {

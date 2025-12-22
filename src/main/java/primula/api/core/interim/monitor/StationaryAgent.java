@@ -22,7 +22,7 @@ import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.api.MessageAPI;
 import primula.api.NetworkAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.agent.RunningAgentPoolListener;
 import primula.api.core.interim.shell.ShellEnvironment;
 import primula.api.core.network.AgentAddress;
@@ -194,11 +194,11 @@ public class StationaryAgent extends AbstractAgent implements IMessageListener,
                 System.err.println(uhe.getMessage());
                 System.exit(-1);
             }
-            HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+            HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
             AInfo.append("Agent Name / Agent ID：\r\n");
             for (String string : agentInfos.keySet()) {
                 AInfo.append(string).append(":\r\n"); //AgentGroup
-                for (AgentInfo info : agentInfos.get(string)) {
+                for (AgentInstanceInfo info : agentInfos.get(string)) {
                     countAgent++;
                     AInfo.append("\t").append(info.getAgentName()).append(" / ").append(info.getAgentId()).append("\r\n");
                 }
@@ -220,10 +220,10 @@ public class StationaryAgent extends AbstractAgent implements IMessageListener,
         } else if (content.getOperation().equals("ImageMachineInfo")) {
             //自分のエージェントの情報を格納して送り返します。
             System.out.println("ImageMachineInfo");
-            HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+            HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
             for (String infos : agentInfos.keySet()) {
                 AInfo.append(infos).append(":\r\n"); //AgentGroup
-                for (AgentInfo info : agentInfos.get(infos)) {
+                for (AgentInstanceInfo info : agentInfos.get(infos)) {
                     countAgent++;
                     AInfo.append("　").append(info.getAgentName()).append("\r\n");
                 }
@@ -244,10 +244,10 @@ public class StationaryAgent extends AbstractAgent implements IMessageListener,
                 System.err.println(uhe.getMessage());
                 System.exit(-1);
             }
-            HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+            HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
             for (String string : agentInfos.keySet()) {
                 if (string.equals(content.getGroupName())) {
-                    for (AgentInfo info : agentInfos.get(string)) {
+                    for (AgentInstanceInfo info : agentInfos.get(string)) {
                         text.append("\t").append(info.getAgentName()).append(" / ").append(info.getAgentId()).append("\r\n");
                     }
                 }

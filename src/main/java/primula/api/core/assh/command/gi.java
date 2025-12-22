@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import primula.api.AgentAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.agent.AgentManager;
 import primula.api.core.assh.operator.FieldOperator;
 import primula.api.core.assh.operator.MethodOperator;
@@ -32,7 +32,7 @@ public class gi extends AbstractCommand {
 
 
 		if(instance == null) {
-			List<AgentInfo> agentInfos = AgentAPI.getAgentInfos().get(AgentSphereID);
+			List<AgentInstanceInfo> agentInfos = AgentAPI.getAgentInfos().get(AgentSphereID);
 			for(int i=0; i<agentInfos.size(); i++) {
 				List<Object> args2 = new ArrayList();
 				args2.add(i);
@@ -53,7 +53,7 @@ public class gi extends AbstractCommand {
 
 
 		else {
-			List<AgentInfo> agentInfos = AgentAPI.getAgentInfos().get(AgentSphereID);
+			List<AgentInstanceInfo> agentInfos = AgentAPI.getAgentInfos().get(AgentSphereID);
 			List<String> agentsName = new ArrayList();
 			for(int i=0; i<agentInfos.size(); i++) {
 				agentsName.add(agentInfos.get(i).getAgentName());

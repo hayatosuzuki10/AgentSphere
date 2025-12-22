@@ -20,7 +20,7 @@ import org.seasar.framework.container.S2Container;
 import org.seasar.framework.container.factory.SingletonS2ContainerFactory;
 
 import primula.agent.AbstractAgent;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.agent.IAgentManager;
 import primula.api.core.agent.RunningAgentPoolListener;
 import primula.api.core.agent.function.ModuleAgentManager;
@@ -114,7 +114,7 @@ public class AgentAPI {
         getAgentManager().runAgent(agent, group);
     }
 
-    public synchronized static HashMap<String, List<AgentInfo>> getAgentInfos() {
+    public synchronized static HashMap<String, List<AgentInstanceInfo>> getAgentInfos() {
         return getAgentManager().getAgentInfos();
     }
 

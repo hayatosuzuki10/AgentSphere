@@ -16,7 +16,7 @@ import org.apache.commons.javaflow.api.Continuation;
 import org.apache.commons.javaflow.api.continuable;
 
 import primula.api.AgentAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.resource.SystemResource;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
@@ -29,9 +29,9 @@ import sphereConnection.stub.SphereSpec;
 public abstract class AbstractAgent extends SystemResource
 		implements Serializable, Runnable, Callable<ContinuationData> {
 	
-	private AgentInfo info;
+	private AgentInstanceInfo info;
 	
-    public AgentInfo getAgentInfo() {
+    public AgentInstanceInfo getAgentInfo() {
     	return info;
     }
 
@@ -106,7 +106,7 @@ public abstract class AbstractAgent extends SystemResource
 	    // AgentInfo を1回だけ取得してキャッシュ
 	    info = DHTutil.getAgentInfo(getAgentID());
 	    if (info == null) {
-	        info = new AgentInfo(this);
+	        info = new AgentInstanceInfo(this);
 	        info.setAgentId(getAgentID());
 	        info.setAgentName(getAgentName());
 	        info.ipAddress = IPAddress.myIPAddress;
@@ -188,7 +188,7 @@ public abstract class AbstractAgent extends SystemResource
 		} else {
 			//同上 
 			info.migrateTime = System.nanoTime() - info.previousMigrateTime;
-			AgentInfo info = DHTutil.getAgentInfo(agentID);
+			AgentInstanceInfo info = DHTutil.getAgentInfo(agentID);
 			info.migrateTime = this.info.migrateTime;
 			Javaflow = Javaflow.resume();
 		}

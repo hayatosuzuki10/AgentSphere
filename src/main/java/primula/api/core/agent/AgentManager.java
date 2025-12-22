@@ -79,7 +79,7 @@ public class AgentManager implements IAgentManager {
     }
 
     @Override
-    public synchronized HashMap<String, List<AgentInfo>> getAgentInfos() {
+    public synchronized HashMap<String, List<AgentInstanceInfo>> getAgentInfos() {
         return runningAgentPool.getAgentInfos();
     }
 

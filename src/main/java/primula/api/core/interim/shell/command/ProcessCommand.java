@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import primula.api.AgentAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.interim.shell.ShellEnvironment;
 
 /**
@@ -24,10 +24,10 @@ public class ProcessCommand extends AbstractCommand {
 
     @Override
     public void runCommand(ShellEnvironment environment, List<String> args) {
-        HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+        HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
         for (String string : agentInfos.keySet()) {
             System.out.println(string + ":");
-            for (AgentInfo info : agentInfos.get(string)) {
+            for (AgentInstanceInfo info : agentInfos.get(string)) {
                 System.out.println("\t" + info.getAgentName() + ":" + info.getAgentId());
             }
         }

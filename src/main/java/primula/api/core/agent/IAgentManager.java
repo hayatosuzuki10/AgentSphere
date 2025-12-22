@@ -59,7 +59,7 @@ public interface IAgentManager extends ICoreModule {
      * 現在起動しているAgent情報を取得します
      * @return
      */
-    HashMap<String, List<AgentInfo>> getAgentInfos();
+    HashMap<String, List<AgentInstanceInfo>> getAgentInfos();
 
     void registReadyRunAgentPoolListener(ReadyRunAgentPoolListener listener);
 

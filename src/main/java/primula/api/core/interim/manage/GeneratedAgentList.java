@@ -12,7 +12,7 @@ import java.util.List;
 import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.api.SystemAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.util.KeyValuePair;
 
 /**
@@ -31,9 +31,9 @@ public class GeneratedAgentList implements Serializable{
     }
     
     public synchronized void startup() {
-        HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+        HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
         for(String string : agentInfos.keySet()){
-            for(AgentInfo info : agentInfos.get(string)){
+            for(AgentInstanceInfo info : agentInfos.get(string)){
                 KeyValuePair<String, String> kp = new KeyValuePair<String, String>(info.getAgentName(), info.getAgentId());
                 list.add(kp);
             }

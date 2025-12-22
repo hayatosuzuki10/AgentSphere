@@ -39,7 +39,7 @@ import javax.swing.JTextArea;
 import primula.api.AgentAPI;
 import primula.api.NetworkAPI;
 import primula.api.SystemAPI;
-import primula.api.core.agent.AgentInfo;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.network.message.AbstractEnvelope;
 import primula.api.core.network.message.StandardContentContainer;
 import primula.util.KeyValuePair;
@@ -344,11 +344,11 @@ class MonitorFrame extends JFrame implements ActionListener {
         text.append("<MyMachine>\r\n");
         text.append("Host Name  ：").append(myHostName).append("\r\n");
         text.append("IP Address ：").append(myIP).append("\r\n");
-        HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+        HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
         AInfo.append("Agent Name / Agent ID：\r\n");
         for (String string : agentInfos.keySet()) {
             AInfo.append(string).append(":\r\n"); //AgentGroup
-            for (AgentInfo info : agentInfos.get(string)) {
+            for (AgentInstanceInfo info : agentInfos.get(string)) {
                 count++;
                 AInfo.append("\t").append(info.getAgentName()).append(" / ").append(info.getAgentId()).append("\r\n");
             }
@@ -398,10 +398,10 @@ class MonitorFrame extends JFrame implements ActionListener {
                 System.out.println("ip[i]/ myIP" + ip[i] + " =? " + myIP);
                 if (ip[i].equals(myIP)) {//自分だったら
                     System.out.println("自分や！");
-                    HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+                    HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
                     for (String name : agentInfos.keySet()) {
                         if (name.equals(groupname)) {
-                            for (AgentInfo info : agentInfos.get(name)) {
+                            for (AgentInstanceInfo info : agentInfos.get(name)) {
                                 txtar.append("\t" + info.getAgentName() + " / " + info.getAgentId() + "\r\n");
                             }
                         }
@@ -482,10 +482,10 @@ class MonitorFrame extends JFrame implements ActionListener {
             countAgent = 0;
 
         } else {//ネットワークに他のマシンがいなかったら自分のだけ表示します
-            HashMap<String, List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
+            HashMap<String, List<AgentInstanceInfo>> agentInfos = AgentAPI.getAgentInfos();
             for (String string : agentInfos.keySet()) {
                 txtarImage.append(string + ":\r\n");
-                for (AgentInfo info : agentInfos.get(string)) {
+                for (AgentInstanceInfo info : agentInfos.get(string)) {
                     countAgent++;
                     txtarImage.append("  " + info.getAgentName() + "\r\n");
                 }
