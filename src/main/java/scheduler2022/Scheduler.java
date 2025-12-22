@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
+import primula.agent.AbstractAgent;
 import primula.api.core.assh.ConsolePanel;
 import primula.util.IPAddress;
 import scheduler2022.collector.DynamicPcInfoCollector;
@@ -97,7 +98,12 @@ public class Scheduler implements Runnable {
 		
 	    setStaticPCInfo();
 	    DHTutil.setAcceptable(IPAddress.myIPAddress, true);
-		
+	    Runtime rt = Runtime.getRuntime();
+	    long max = rt.maxMemory();      // -Xmx 相当（最大ヒープ）
+	    long total = rt.totalMemory();  // 現在JVMが確保してるヒープ
+	    long free = rt.freeMemory();    // totalの中で空いてる分
+	    System.out.printf("[Heap] max=%.2fGB total=%.2fGB free=%.2fGB used=%.2fGB%n",
+	            max/1e9, total/1e9, free/1e9, (total-free)/1e9);
 		startLoop();
 
 	    // 終了時のクリーンアップ
@@ -481,6 +487,23 @@ public class Scheduler implements Runnable {
 
 	public static void setTimeStampExpire(long timeStampExpire) {
 		Scheduler.timeStampExpire = timeStampExpire;
+	}
+	
+	public static String getNextDestination(AbstractAgent agent) {
+		boolean shouldMove = Scheduler.getStrategy().shouldMove(agent);
+        String nextDestination = Scheduler.getStrategy().getDestination(agent);
+
+        // Strategy2022 のときだけ上書きしたいなら「{}」必須
+        if (Scheduler.getStrategy().getClass().getName().contains("Strategy2022")) {
+            nextDestination = RecommendedDest.recomDest(agent.getAgentName());
+        }
+        if (shouldMove
+        	    && !IPAddress.myIPAddress.equals(nextDestination)) {
+        	System.out.println("will move");
+        	System.out.println("[DemoAgent] 強制移動。移動先: " + nextDestination);
+        	
+        }
+        return nextDestination;
 	}
 
 }

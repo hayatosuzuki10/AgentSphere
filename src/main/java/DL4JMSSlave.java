@@ -1,8 +1,8 @@
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,133 +24,135 @@ import primula.api.core.network.message.IMessageListener;
 import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
 import primula.util.KeyValuePair;
+import scheduler2022.Scheduler;
 
 public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
 
-    private String parentId, masterIp;
+    private String parentId;
+    private String masterIp;
+    private int masterPort = 55878;
+
     private volatile boolean running = true;
-    private final int batchSize = 32, localEpochs = 1;
+    private final int batchSize = 32;
+    private final int localEpochs = 1;
+
     private boolean loaded = false;
 
-    private int partIndex = 0;       
-    private int totalParts = 1;    
+    private int partIndex = 0;
+    private int totalParts = 1;
 
     private List<DataSet> localData = null;
 
-    //各種セッター
+    // setter
     public void setParentId(String parentId) { this.parentId = parentId; }
     public void setMasterIp(String masterIp) { this.masterIp = masterIp; }
+    public void setMasterPort(int masterPort) { this.masterPort = masterPort; }
     public void setPartIndex(int idx) { this.partIndex = idx; }
     public void setTotalParts(int tot) { this.totalParts = tot; }
 
     public @continuable void run() {
-        System.out.println("[Slave] 起動: " + getAgentName());
-        try { MessageAPI.registerMessageListener(this); }  //リスナ登録
-        catch (Exception e) { e.printStackTrace(); return; }
+        System.out.println("[Slave] 起動: " + getAgentName() + " id=" + getAgentID());
 
-        loadLocalTrainingData();  //この関数で学習用データをロード
-        loaded = true;            //ロードできたかフラグ
+        try {
+            MessageAPI.registerMessageListener(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
 
-        //データを読み込んだらひたすら待機
-        //学習モデルを受け取ったらそれに応じて処理するだけ
+        loadLocalTrainingData();
+        loaded = true;
+
         while (running) {
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
         }
-        
-        //---------------------------------------------
-        //Slave側を終了させる処理はまだ記述していません
-        //---------------------------------------------
     }
-    
-    
-    //------------------------------------------------------------------------
-    //Masterから初期化or平均化された学習モデルを受け取り、担当するデータで学習
-    //その後、学習済みの学習モデルをMasterへ送信
-    //------------------------------------------------------------------------
+
     @Override
     public void receivedMessage(AbstractEnvelope env) {
-
         try {
             byte[] payload =
                 (byte[]) ((StandardContentContainer) env.getContent()).getContent();
+            if (payload == null || payload.length < 1) return;
 
             byte type = payload[0];
-            byte[] body = java.util.Arrays.copyOfRange(payload, 1, payload.length);
 
-            //①学習データが読み込まれるまで待つ
-            //  読み込まれたら学習開始
-            if (!loaded) {
-                System.out.println("[Slave] 学習データ読み込み待ち中...");
-                while (!loaded) {
-                    try { Thread.sleep(100); } catch (InterruptedException ignored) {}
-                }
-                System.out.println("[Slave] 学習データロード完了 → 学習可能");
-            }
-
-            //type=2 → 学習モデル
+            // type=2 : [type][round(int)][modelBytes...]
             if (type == 2) {
+
+                if (!loaded) {
+                    while (!loaded) {
+                        try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+                    }
+                }
 
                 if (localData == null) {
                     System.out.println("[Slave] エラー：学習データがまだ用意されていません");
                     return;
                 }
 
+                ByteBuffer buf = ByteBuffer.wrap(payload);
+                buf.get(); // type
+
+                int round = buf.getInt();
+
+                byte[] modelBytes = new byte[buf.remaining()];
+                buf.get(modelBytes);
+
                 MultiLayerNetwork model = null;
                 ListDataSetIterator<DataSet> iter = null;
 
-              //②実際に学習処理を開始する
-                try {
-                	
-                    System.out.println("[Slave] モデル受信 → 学習開始");
+                long tRecv = System.currentTimeMillis();
 
-                    model = ModelSerializer.restoreMultiLayerNetwork(new ByteArrayInputStream(body));
+                try {
+                	nextDestination = Scheduler.getNextDestination(this);
+                    migrate(nextDestination);
+                    System.out.println("[Slave] Round " + round + " 学習開始");
+
+                    model = ModelSerializer.restoreMultiLayerNetwork(
+                            new ByteArrayInputStream(modelBytes));
 
                     iter = new ListDataSetIterator<>(localData, batchSize);
 
+                    long tTrain0 = System.currentTimeMillis();
                     for (int e = 0; e < localEpochs; e++) {
                         model.fit(iter);
                         iter.reset();
                     }
+                    long trainMs = System.currentTimeMillis() - tTrain0;
 
-                    System.out.println("[Slave] 学習完了 → モデル返送");
-
+                    long tSer0 = System.currentTimeMillis();
                     byte[] updated = serializeModel(model);
+                    long serMs = System.currentTimeMillis() - tSer0;
 
-                    //返送は type=3
-                    byte[] sendPayload = wrapWithType((byte)3, updated);
+                    // reply: [type=3][round][trainMs][serMs][modelBytes...]
+                    byte[] sendPayload = wrapTrainedPayload((byte)3, round, trainMs, serMs, updated);
 
-                    KeyValuePair<InetAddress,Integer> back =
-                            new KeyValuePair<>(Inet4Address.getByName(masterIp), 55878);
+                    InetAddress ip = InetAddress.getByName(masterIp);
+                    KeyValuePair<InetAddress, Integer> dst = new KeyValuePair<>(ip, masterPort);
 
-                    //③学習済み学習モデルをMasterへ返す
                     MessageAPI.send(
-                        back,
-                        new StandardEnvelope(new AgentAddress(parentId),
-                            new StandardContentContainer(sendPayload))
+                        dst,
+                        new StandardEnvelope(
+                            new AgentAddress(parentId),
+                            new StandardContentContainer(sendPayload)
+                        )
                     );
 
-                    //④以下メモリ関連のエラー対策
-                } finally {
-                    //このラウンドで使った Iterator の参照を切る
-                    if (iter != null) {
-                        iter = null;
-                    }
+                    long totalMs = System.currentTimeMillis() - tRecv;
+                    System.out.println("[Slave] Round " + round + " 返送完了 totalMs=" + totalMs
+                            + " trainMs=" + trainMs + " serMs=" + serMs);
 
-                    //モデルの内部リソースを解放し、参照を切る
+                } finally {
+                    iter = null;
                     if (model != null) {
-                        try {
-                            model.clear();
-                        } catch (Exception ignore) {}
+                        try { model.clear(); } catch (Exception ignore) {}
                         model = null;
                     }
-
-                    //ND4J のワークスペースとメモリをこのスレッド分クリア
                     Nd4j.getWorkspaceManager().destroyAllWorkspacesForCurrentThread();
                     Nd4j.getMemoryManager().invokeGc();
                     System.gc();
                 }
-
-                return;
             }
 
         } catch (Exception e) {
@@ -158,28 +160,20 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
         }
     }
 
-    
-    //学習用データをロードするための関数
     private void loadLocalTrainingData() {
-
         System.out.println("[Slave] CIFAR-10 データ読み込み開始");
 
         try {
             final int rngSeed = 123;
 
             DataSetIterator trainIt = new Cifar10DataSetIterator(
-                    batchSize,
-                    null,                 // 画像サイズ → null 固定（DL4J仕様）
-                    DataSetType.TRAIN,    // 学習用データ 50,000 枚
-                    null,                 // データ拡張なし
-                    rngSeed               // シャッフルシード
+                    batchSize, null, DataSetType.TRAIN, null, rngSeed
             );
 
-            //すべての DataSet をリストへ展開（各 DataSet を workspace から detach）
-            List<DataSet> all = new ArrayList<>(); // バッチが入る
+            List<DataSet> all = new ArrayList<>();
             while (trainIt.hasNext()) {
                 DataSet ds = trainIt.next();
-                ds.detach();        
+                ds.detach();
                 all.add(ds);
             }
 
@@ -189,20 +183,12 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
             int start = partIndex * partSize;
             int end = (partIndex == totalParts - 1) ? total : start + partSize;
 
-            //Slave が担当するデータだけ取り出す
             localData = new ArrayList<>(all.subList(start, end));
-
-            //自分の担当分以外の DataSet 参照を全部消す
             all.clear();
 
-            System.out.println("[Slave] データ読み込み完了: 担当 part " +
-                    partIndex + "/" + totalParts +
-                    "  start=" + start +
-                    "  end=" + end +
-                    "  size=" + localData.size()
-            );
+            System.out.println("[Slave] データ読み込み完了: part " + partIndex + "/" + totalParts
+                    + " start=" + start + " end=" + end + " size=" + localData.size());
 
-            //ワークスペースとメモリをクリーンアップ(メモリが足りなくなる)
             Nd4j.getWorkspaceManager().destroyAllWorkspacesForCurrentThread();
             Nd4j.getMemoryManager().invokeGc();
             System.gc();
@@ -213,30 +199,27 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
         }
     }
 
-    
-
-    //シリアライズした学習モデルを送信できる形にする関数
-    private byte[] wrapWithType(byte type, byte[] body) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        baos.write(type);
-        try { baos.write(body); }
-        catch (IOException e) { throw new RuntimeException(e); }
-        return baos.toByteArray();
+    /** reply payload: [type][round(int)][trainMs(long)][serMs(long)][modelBytes...] */
+    private byte[] wrapTrainedPayload(byte type, int round, long trainMs, long serMs, byte[] modelBytes) {
+        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + 8 + 8 + modelBytes.length);
+        buf.put(type);
+        buf.putInt(round);
+        buf.putLong(trainMs);
+        buf.putLong(serMs);
+        buf.put(modelBytes);
+        return buf.array();
     }
 
-    
-    //学習モデルをシリアライズする関数
     private static byte[] serializeModel(MultiLayerNetwork model) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             ModelSerializer.writeModel(model, baos, true);
             return baos.toByteArray();
-        } catch (IOException e) { throw new RuntimeException(e); }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    @Override public String getStrictName() { return this.getAgentID(); }
-    @Override public String getSimpleName() { return this.getAgentName(); }
+    @Override public String getStrictName() { return getAgentID(); }
+    @Override public String getSimpleName() { return getAgentName(); }
     @Override public void requestStop() {}
 }
-
-
-

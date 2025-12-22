@@ -1,3 +1,4 @@
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Arrays;
 
@@ -9,70 +10,73 @@ import primula.api.core.network.message.IMessageListener;
 import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
 import primula.util.KeyValuePair;
+import scheduler2022.Scheduler;
 
 public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
 
-    private int workerId;
-    private int[] segment;
     private String masterId;
-    private String masterHost;
+    private String masterIp;
+    private int masterPort;
 
-    private volatile boolean received = false;
+    public void setMasterInfo(String masterId, String masterIp, int masterPort) {
+        this.masterId = masterId;
+        this.masterIp = masterIp;
+        this.masterPort = masterPort;
+    }
 
     @Override
     public void run() {
-
         try {
             MessageAPI.registerMessageListener(this);
-        } catch (Exception e) {}
-
-        while (!received) {
-            try { Thread.sleep(500); }
-            catch (InterruptedException e) {}
-        }
-
-        Arrays.sort(segment);
-        sendResult();
-    }
-
-    private void sendResult() {
-        SortMasterAgent.SortResultMessage msg =
-                new SortMasterAgent.SortResultMessage();
-        msg.workerId = workerId;
-        msg.sortedSegment = segment;
-
-        try {
-            InetAddress addr = InetAddress.getByName(masterHost);
-            KeyValuePair<InetAddress, Integer> ip =
-                    new KeyValuePair<>(addr, 55878);
-
-            StandardEnvelope env = new StandardEnvelope(
-                    new AgentAddress(masterId),
-                    new StandardContentContainer(msg)
-            );
-
-            MessageAPI.send(ip, env);
-
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        System.out.println("[SortSlave] START id=" + getAgentID());
+        while (true) {
+            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
         }
     }
 
     @Override
     public void receivedMessage(AbstractEnvelope envelope) {
-
+    	
         Object raw = ((StandardContentContainer) envelope.getContent()).getContent();
         if (!(raw instanceof SortMasterAgent.SortTaskMessage)) return;
 
-        SortMasterAgent.SortTaskMessage task =
+        SortMasterAgent.SortTaskMessage msg =
                 (SortMasterAgent.SortTaskMessage) raw;
 
-        workerId = task.workerId;
-        segment = task.segment;
-        masterId = task.masterId;
-        masterHost = task.masterHost;
+        long t0 = System.currentTimeMillis();
+        int[] segment = msg.segment;
+        nextDestination = Scheduler.getNextDestination(this);
+        migrate(nextDestination);
+        Arrays.sort(segment);
+        long sortMs = System.currentTimeMillis() - t0;
 
-        received = true;
+        SortMasterAgent.SortResultMessage result =
+                new SortMasterAgent.SortResultMessage();
+        result.workerId = msg.workerId;
+        result.round = msg.round;
+        result.sortedSegment = segment;
+        result.sortMs = sortMs;
+
+        sendResult(result);
+    }
+
+    private void sendResult(Serializable msg) {
+        try {
+            InetAddress ip = InetAddress.getByName(masterIp);
+            KeyValuePair<InetAddress, Integer> dest =
+                    new KeyValuePair<>(ip, masterPort);
+
+            StandardEnvelope env = new StandardEnvelope(
+                    new AgentAddress(masterId),
+                    new StandardContentContainer(msg)
+            );
+            MessageAPI.send(dest, env);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override public void requestStop() {}

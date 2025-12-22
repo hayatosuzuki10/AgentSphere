@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.commons.javaflow.api.continuable;
 
 import primula.agent.AbstractAgent;
-import primula.api.core.assh.command.demo;
 import primula.util.IPAddress;
 import scheduler2022.RecommendedDest;
 import scheduler2022.Scheduler;
@@ -58,7 +57,6 @@ public class DemoAgent extends AbstractAgent {
             }
         }
         migrate(defaltDest);
-        demo.agentsAlive += 1;
         //demo.routes.add(route);
         System.out.println("[DemoAgent] 終了!!!: " + getAgentID() + ", カウント = " + counter);
         
