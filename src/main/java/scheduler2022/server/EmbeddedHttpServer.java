@@ -49,11 +49,11 @@ public class EmbeddedHttpServer {
             	    dynamicPCInfos.put(ip, DHTutil .getPcInfo(ip));
             	}
             	Map<String, AgentInstanceInfo> agentInfos = new HashMap<String, AgentInstanceInfo>();
-            	Set<String> allAgentIDs = DHTutil.getAllAgentIDs();
-            	for(String agentID: allAgentIDs) {
-            		AgentInstanceInfo agentInfo = DHTutil.getAgentInfo(agentID);
-            		agentInfos.put(agentID,agentInfo);
-            	}
+            	//Set<String> allAgentIDs = DHTutil.getAllAgentIDs();
+//            	for(String agentID: allAgentIDs) {
+//            		AgentInstanceInfo agentInfo = DHTutil.getAgentInfo(agentID);
+//            		agentInfos.put(agentID,agentInfo);
+//            	}
             	Map<String, Object> dynamicPack = new HashMap<>();
         		dynamicPack.put("dynamicPCInfos", dynamicPCInfos);
         		

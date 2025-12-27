@@ -16,7 +16,6 @@ import primula.agent.AbstractAgent;
 import primula.api.SystemAPI;
 import primula.api.core.scheduler.cpu.CPUPerformaceMeasure;
 import scheduler2022.Scheduler;
-import scheduler2022.util.DHTutil;
 
 /**
  * @author yamamoto
@@ -59,9 +58,10 @@ class RunningAgentPool {
 
     	agentThread.start();
     	ExecutorService executor = Executors.newSingleThreadExecutor();
-
+    	String agentID = agentThread.getAgent().getAgentID();
+    	
     	executor.submit(() -> {
-    	    Scheduler.analyze.analyze(agentThread.getAgent().getAgentID());
+    	    Scheduler.analyze.analyze(agentID);
     	});
 		
 	}
@@ -92,12 +92,10 @@ class RunningAgentPool {
 						String agentID = agentThread.getAgent().getAgentID();
 						agentInfo.setAgentName(agentThread.getAgent().getAgentName());
 						agentInfo.setAgentId(agentID);
-						agentInfo.setTime(agentInfo.startTime);
+						agentInfo.setTime(agentInfo.getStartTime());
 						agentInfo.setAgent(agentThread.getAgent());
 						list.get(string).add(agentInfo);
-						if(DHTutil.getAgentInfo(agentID)==null) {
-							DHTutil.setAgentInfo(agentID, agentInfo);
-						}
+						Scheduler.agentInfo.put(agentID, agentInfo);
 					} catch (Exception e) {
 						SystemAPI.getLogger()
 								.debug("取得途中にagentが消されたかも？後で直す" + System.getProperty("line.separator") + e);

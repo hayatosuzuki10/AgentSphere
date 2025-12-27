@@ -10,7 +10,6 @@ import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
 import primula.util.KeyValuePair;
 import scheduler2022.Scheduler;
-import scheduler2022.util.DHTutil;
 
 public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
 
@@ -49,6 +48,9 @@ public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
         System.out.println("[TSPSlave] task received workerId=" + workerId
                 + " range=[" + start + "," + end + ") masterId=" + masterId);
 
+
+        nextDestination = Scheduler.getNextDestination(this);
+        migrate(nextDestination);
         solveTSP();
         sendResultToMaster();
 
@@ -63,8 +65,6 @@ public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
                 System.err.println("[TSPSlave] unexpected content=" + (raw == null ? "null" : raw.getClass()));
                 return;
             }
-            nextDestination = Scheduler.getNextDestination(this);
-            migrate(nextDestination);
             TSPMasterAgent.TSPMasterMessage msg = (TSPMasterAgent.TSPMasterMessage) raw;
 
             this.numCities = msg.numCities;
@@ -85,13 +85,8 @@ public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
         if (masterId == null) return;
 
         try {
-            var info = DHTutil.getAgentInfo(masterId);
-            if (info == null || info.ipAddress == null) {
-                System.err.println("[TSPSlave] master AgentInfo not found masterId=" + masterId);
-                return;
-            }
 
-            InetAddress ip = InetAddress.getByName(info.ipAddress.trim());
+            InetAddress ip = primula.agent.util.DHTutil.getAgentIP(masterId);
             KeyValuePair<InetAddress, Integer> dst = new KeyValuePair<>(ip, MSG_PORT);
 
             TSPMasterAgent.TSPResultMessage res = new TSPMasterAgent.TSPResultMessage();

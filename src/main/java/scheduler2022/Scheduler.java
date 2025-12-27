@@ -1,6 +1,7 @@
 package scheduler2022;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import primula.agent.AbstractAgent;
+import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.assh.ConsolePanel;
 import primula.util.IPAddress;
 import scheduler2022.collector.DynamicPcInfoCollector;
@@ -58,6 +60,9 @@ public class Scheduler implements Runnable {
 	private static long agentRemigrateTime = 3_000_000_000L;
 	public static volatile DynamicPCInfo latestDPI;
 	public static volatile StaticPCInfo SPI;
+	
+
+    public static Map<String, AgentInstanceInfo> agentInfo = new HashMap<>();
 	
 	public static DynamicPCInfoDetector analyze;
 	

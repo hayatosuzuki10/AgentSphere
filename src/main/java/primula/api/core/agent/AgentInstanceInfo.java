@@ -18,29 +18,30 @@ import primula.api.AgentAPI;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo.Agent;
 import scheduler2022.Scheduler;
+import scheduler2022.util.DHTutil;
 
 public class AgentInstanceInfo implements Serializable{
 	
-		public String id;
-		public String name;
-		public String ipAddress = IPAddress.myIPAddress;
-		public long threadId;
-		public long startTime;
-	    public int cpuChange = 5000;
-	    public int gpuChange = 5000;
-	    public long memoryChange = 5000;
-	    public long networkUpChange = 5000;
-	    public long networkDownChange = 5000;
+		private String id;
+		private String name;
+		private String ipAddress = IPAddress.myIPAddress;
+		private long threadId;
+		private long startTime;
+	    private int cpuChange = 5000;
+	    private int gpuChange = 5000;
+	    private long memoryChange = 5000;
+	    private long networkUpChange = 5000;
+	    private long networkDownChange = 5000;
 
 	    // ★ 追加：メモリ負荷の内訳
-	    public long heapChange = 0;         // ヒープ差分(bytes)
-	    public long realMemoryChange = 0;  // HostAvailable の差分(bytes)
-	    public int gcCountChange = 0;      // GC 回数差分
+	    private long heapChange = 0;         // ヒープ差分(bytes)
+	    private long realMemoryChange = 0;  // HostAvailable の差分(bytes)
+	    private int gcCountChange = 0;      // GC 回数差分
 	    
-	    public double priority;
-	    public double progress;
-	    public double migrateTime;
-	    public double previousMigrateTime;
+	    private double priority = 0.5;
+	    private double progress;
+	    private double migrateTime;
+	    private double previousMigrateTime;
 		private List<history> history = new ArrayList<history> ();
 		
 		private Map<Long, Integer> cpuChangeRecords = new HashMap<>();
@@ -51,15 +52,20 @@ public class AgentInstanceInfo implements Serializable{
 		private Map<Long, Long> heapChangeRecords = new HashMap<>();
 	    private Map<Long, Long> realMemoryChangeRecords = new HashMap<>();
 	    private Map<Long, Integer> gcCountChangeRecords = new HashMap<>();
+	    
 		
 	    @JsonIgnore
 	    public void recordCPUChange(int cpuChange, long time) {
 	        if (cpuChangeRecords.isEmpty()) {
-	            this.cpuChange = cpuChange;
+	            this.setCpuChange(cpuChange);
 	        } else {
-	            this.cpuChange = ema(this.cpuChange, cpuChange, Scheduler.getEmaAlpha());
+	            this.setCpuChange(ema(this.getCpuChange(), cpuChange, Scheduler.getEmaAlpha()));
 	        }
 	        cpuChangeRecords.put(time, cpuChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setCpuChange(cpuChange);
+	        DHTutil.setAgentInfo(this.name, info);
+	        
 	    }
 
 	    @JsonIgnore
@@ -70,6 +76,9 @@ public class AgentInstanceInfo implements Serializable{
 	            this.gpuChange = ema(this.gpuChange, gpuChange, Scheduler.getEmaAlpha());
 	        }
 	        gpuChangeRecords.put(time, gpuChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setGpuChange(gpuChange);
+	        DHTutil.setAgentInfo(this.name, info);
 	    }
 
 	    @JsonIgnore
@@ -80,6 +89,9 @@ public class AgentInstanceInfo implements Serializable{
 	            this.memoryChange = ema(this.memoryChange, memoryChange, Scheduler.getEmaAlpha());
 	        }
 	        memoryChangeRecords.put(time, memoryChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setMemoryChange(memoryChange);
+	        DHTutil.setAgentInfo(this.name, info);
 	    }
 
 	    @JsonIgnore
@@ -90,6 +102,9 @@ public class AgentInstanceInfo implements Serializable{
 	            this.networkUpChange = ema(this.networkUpChange, networkUpChange, Scheduler.getEmaAlpha());
 	        }
 	        networkUpChangeRecords.put(time, networkUpChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setNetworkUpChange(networkUpChange);
+	        DHTutil.setAgentInfo(this.name, info);
 	    }
 
 	    @JsonIgnore
@@ -102,6 +117,9 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        
 	        networkDownChangeRecords.put(time, networkDownChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setNetworkDownChange(networkDownChange);
+	        DHTutil.setAgentInfo(this.name, info);
 	    }
 	    
 	    @JsonIgnore
@@ -112,6 +130,9 @@ public class AgentInstanceInfo implements Serializable{
 	            this.heapChange = ema(this.heapChange, heapChange, Scheduler.getEmaAlpha());
 	        }
 	        heapChangeRecords.put(time, heapChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setHeapChange(heapChange);
+	        DHTutil.setAgentInfo(this.name, info);
 	    }
 
 	    // ★ 追加：実メモリ差分 (HostAvailable の減少分)
@@ -123,6 +144,9 @@ public class AgentInstanceInfo implements Serializable{
 	            this.realMemoryChange = ema(this.realMemoryChange, realMemoryChange, Scheduler.getEmaAlpha());
 	        }
 	        realMemoryChangeRecords.put(time, realMemoryChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setRealMemoryChange(realMemoryChange);
+	        DHTutil.setAgentInfo(this.name, info);
 	    }
 
 	    // ★ 追加：GC 回数差分
@@ -134,6 +158,9 @@ public class AgentInstanceInfo implements Serializable{
 	            this.gcCountChange = ema(this.gcCountChange, gcCountChange, Scheduler.getEmaAlpha());
 	        }
 	        gcCountChangeRecords.put(time, gcCountChange);
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        info.setGCCountChange(gcCountChange);
+	        DHTutil.setAgentInfo(this.name, info);
 	    }
 		
 		@JsonIgnore
@@ -177,44 +204,44 @@ public class AgentInstanceInfo implements Serializable{
 	    ) {
 	        this.id = id;
 	        this.name = name;
-	        this.ipAddress = ipAddress;
+	        this.setIpAddress(ipAddress);
 	        this.agent = agent;
-	        this.threadId = threadId;
-	        this.startTime = startTime;
-	        this.cpuChange = cpuChange;
+	        this.setThreadId(threadId);
+	        this.setStartTime(startTime);
+	        this.setCpuChange(cpuChange);
 	        this.gpuChange = gpuChange;
 	        // ★ 修正
 	        this.memoryChange = memoryChange;
 	        this.networkUpChange = networkChange;
-	        this.priority = priority;
+	        this.setPriority(priority);
 	        this.progress = progress;
-	        this.migrateTime = migrateTime;
-	        this.previousMigrateTime = previousMigrateTime;
+	        this.setMigrateTime(migrateTime);
+	        this.setPreviousMigrateTime(previousMigrateTime);
 	    }
 		
 	    @Override
 	    public String toString() {
-	        return "AgentInfo{" +
+	        return "AgentInstanceInfo{" +
 	                "id='" + id + '\'' +
 	                ", name='" + name + '\'' +
-	                ", ipAddress='" + ipAddress + '\'' +
-	                ", startTime=" + startTime +
-	                ", cpuChange=" + cpuChange +
+	                ", ipAddress='" + getIpAddress() + '\'' +
+	                ", startTime=" + getStartTime() +
+	                ", cpuChange=" + getCpuChange() +
 	                ", gpuChange=" + gpuChange +
 	                ", memoryChange=" + memoryChange +
 	                ", networkChange=" + networkUpChange +
 	                ", heapChange=" + heapChange +
 	                ", realMemoryChange=" + realMemoryChange +
 	                ", gcCountChange=" + gcCountChange +
-	                ", priority=" + priority +
+	                ", priority=" + getPriority() +
 	                ", progress=" + progress +
-	                ", migrateTime=" + migrateTime +
-	                ", previousMigrateTime=" + previousMigrateTime +
+	                ", migrateTime=" + getMigrateTime() +
+	                ", previousMigrateTime=" + getPreviousMigrateTime() +
 	                '}';
 	    }
 		
 
-		class history {
+		public static class history implements Serializable{
 			String ip;
 			long time;
 			history(String ip,long time){
@@ -280,11 +307,11 @@ public class AgentInstanceInfo implements Serializable{
 	     * @param runtime
 	     */
 	    public void setTime(long runtime){
-	    	this.startTime=runtime;
+	    	this.setStartTime(runtime);
 	    }
 
 	    public long getTime(){
-	    	return this.startTime;
+	    	return this.getStartTime();
 	    }
 	    
 	    @JsonIgnore
@@ -299,7 +326,7 @@ public class AgentInstanceInfo implements Serializable{
 
 //	    goto
 	    public void RegistarHistory(String ip) {
-			long time = System.currentTimeMillis() - this.startTime;
+			long time = System.currentTimeMillis() - this.getStartTime();
 			for(int i=0;i<this.history.size();i++) {
 				time -= this.history.get(i).time;
 			}
@@ -315,6 +342,63 @@ public class AgentInstanceInfo implements Serializable{
 		public int getHistoryLength() {
 
 			return this.history.size();
+		}
+
+		public String getIpAddress() {
+			return ipAddress;
+		}
+
+		public void setIpAddress(String ipAddress) {
+			this.ipAddress = ipAddress;
+			this.RegistarHistory(ipAddress);
+		}
+
+		public long getStartTime() {
+			return startTime;
+		}
+
+		public void setStartTime(long startTime) {
+			this.startTime = startTime;
+		}
+
+		public long getThreadId() {
+			return threadId;
+		}
+
+		public void setThreadId(long threadId) {
+			this.threadId = threadId;
+		}
+
+		public double getPreviousMigrateTime() {
+			return previousMigrateTime;
+		}
+
+		public void setPreviousMigrateTime(double previousMigrateTime) {
+			this.previousMigrateTime = previousMigrateTime;
+		}
+
+		public double getMigrateTime() {
+			return migrateTime;
+		}
+
+		public void setMigrateTime(double migrateTime) {
+			this.migrateTime = migrateTime;
+		}
+
+		public int getCpuChange() {
+			return cpuChange;
+		}
+
+		public void setCpuChange(int cpuChange) {
+			this.cpuChange = cpuChange;
+		}
+
+		public double getPriority() {
+			return priority;
+		}
+
+		public void setPriority(double priority) {
+			this.priority = priority;
 		}
 		    
 		

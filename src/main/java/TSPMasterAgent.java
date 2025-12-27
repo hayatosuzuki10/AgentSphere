@@ -28,7 +28,7 @@ public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
     private static final int MSG_PORT = 55878;
 
     /** TSP インスタンスファイルパス（相対パス） */
-    private String fileName = "others/tsp22.txt";
+    private String fileName = "others/tsp16.txt";
 
     /** 全ワーカー終了確認用のポーリング間隔(ms) */
     private long sleepMillis = 300L;

@@ -33,6 +33,9 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
         }
         System.out.println("[SortSlave] START id=" + getAgentID());
         while (true) {
+
+            nextDestination = Scheduler.getNextDestination(this);
+            migrate(nextDestination);
             try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
         }
     }
@@ -48,8 +51,6 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
 
         long t0 = System.currentTimeMillis();
         int[] segment = msg.segment;
-        nextDestination = Scheduler.getNextDestination(this);
-        migrate(nextDestination);
         Arrays.sort(segment);
         long sortMs = System.currentTimeMillis() - t0;
 

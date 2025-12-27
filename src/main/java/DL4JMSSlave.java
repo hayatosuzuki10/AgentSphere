@@ -64,6 +64,8 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
         loaded = true;
 
         while (running) {
+        	nextDestination = Scheduler.getNextDestination(this);
+            migrate(nextDestination);
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
         }
     }
@@ -105,8 +107,7 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
                 long tRecv = System.currentTimeMillis();
 
                 try {
-                	nextDestination = Scheduler.getNextDestination(this);
-                    migrate(nextDestination);
+                	
                     System.out.println("[Slave] Round " + round + " 学習開始");
 
                     model = ModelSerializer.restoreMultiLayerNetwork(

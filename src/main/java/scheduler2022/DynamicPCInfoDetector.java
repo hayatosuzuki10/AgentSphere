@@ -7,7 +7,6 @@ import java.util.Objects;
 import java.util.Queue;
 
 import primula.api.core.agent.AgentInstanceInfo;
-import scheduler2022.util.DHTutil;
 
 /**
  * 動的な PC 情報（DynamicPCInfo）を一定期間貯めておき、
@@ -30,6 +29,7 @@ public class DynamicPCInfoDetector {
     private int gpuPerfThreshold = 4000;
     private int gpuMemThreshold = 2000;
     private double netThresholdMbps = 2000000;
+    
 
     // 固定スペック情報（ベンチマークなど）
     public final StaticPCInfo spi;
@@ -254,7 +254,7 @@ public class DynamicPCInfoDetector {
          * 「変化あり」の場合だけ値を記録し、それ以外は 0 を記録する方針。
          */
         public void updateAgentInfo(String id) {
-            AgentInstanceInfo info = DHTutil.getAgentInfo(id);
+            AgentInstanceInfo info = Scheduler.agentInfo.get(id);
             if (info == null) {
                 // Agent が既に死んでいる / DHT にいないケースの保険
                 return;
@@ -302,7 +302,7 @@ public class DynamicPCInfoDetector {
                 info.recordNetworkDownChange(0L, timeStamp);
             }
 
-            DHTutil.setAgentInfo(id, info);
+            Scheduler.agentInfo.put(id, info);
         }
 
         /**

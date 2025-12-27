@@ -16,6 +16,7 @@ import org.apache.commons.javaflow.api.Continuation;
 import org.apache.commons.javaflow.api.continuable;
 
 import primula.api.AgentAPI;
+import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.resource.SystemResource;
 import primula.util.IPAddress;
@@ -104,16 +105,21 @@ public abstract class AbstractAgent extends SystemResource
 	    }
 
 	    // AgentInfo を1回だけ取得してキャッシュ
-	    info = DHTutil.getAgentInfo(getAgentID());
+	    info = Scheduler.agentInfo.get(getAgentID());
 	    if (info == null) {
 	        info = new AgentInstanceInfo(this);
 	        info.setAgentId(getAgentID());
 	        info.setAgentName(getAgentName());
-	        info.ipAddress = IPAddress.myIPAddress;
-	        DHTutil.setAgentInfo(getAgentID(), info);
+	        info.setIpAddress(IPAddress.myIPAddress);
+	        Scheduler.agentInfo.put(agentID, info);
+	    }
+	    AgentClassInfo classInfo = DHTutil.getAgentInfo(getAgentName());
+	    if(classInfo == null) {
+	    	classInfo = new AgentClassInfo(getAgentName());
+	    	DHTutil.setAgentInfo(getAgentName(), classInfo);
 	    }
 
-		info.startTime = System.currentTimeMillis();
+		info.setStartTime(System.currentTimeMillis());
 	}
 	
 
@@ -172,7 +178,7 @@ public abstract class AbstractAgent extends SystemResource
 		/* 初回起動時
 		 * Continuationがnullの場合はrun()メソッドを始めから実行する
 		 */
-		info.threadId = Thread.currentThread().getId();
+		info.setThreadId(Thread.currentThread().getId());
 		
 		try {
 			primula.agent.util.DHTutil.setAgentIP(getAgentID(), Inet4Address.getByName(IPAddress.myIPAddress));
@@ -180,16 +186,18 @@ public abstract class AbstractAgent extends SystemResource
 		} catch (UnknownHostException e1) {
 			throw new RuntimeException("IPアドレス設定が不正です");
 		}
-
+		setIP();
 		if (Javaflow == null) {
 			//susspend(=migrate())が中で呼ばれていればその時点での状態を表すインスタンス、run()が終了していればnullが返る
 			Javaflow = Continuation.startWith(this);
 			
 		} else {
 			//同上 
-			info.migrateTime = System.nanoTime() - info.previousMigrateTime;
-			AgentInstanceInfo info = DHTutil.getAgentInfo(agentID);
-			info.migrateTime = this.info.migrateTime;
+			info.setMigrateTime(System.nanoTime() - info.getPreviousMigrateTime());
+
+			AgentInstanceInfo info = Scheduler.agentInfo.get(agentID);
+					
+			info.setMigrateTime(this.info.getMigrateTime());
 			Javaflow = Javaflow.resume();
 		}
 
@@ -229,7 +237,7 @@ public abstract class AbstractAgent extends SystemResource
 
 		if (!DHTutil.containsSpec(myname)) {
 			ed = System.currentTimeMillis();
-			processingtime = ed - info.startTime;
+			processingtime = ed - info.getStartTime();
 			usingmemory = mm.memory_measure(Thread.currentThread().getId());
 			SphereSpec ss = new SphereSpec(clock, processingtime, usingmemory);
 			DHTutil.setSpec(myname, ss);
@@ -275,13 +283,13 @@ public abstract class AbstractAgent extends SystemResource
 //		}
 
 		// ここまで来たら移動OKなので、今回を「前回移動」に更新
-		info.previousMigrateTime = now;
+		info.setPreviousMigrateTime(now);
 		
 		if (!ContinuationFlag) {
 			ContinuationFlag = true;
 
 		}
-			info.previousMigrateTime = System.nanoTime();
+			info.setPreviousMigrateTime(System.nanoTime());
 			Continuation.suspend();
 
 	}
@@ -308,6 +316,18 @@ public abstract class AbstractAgent extends SystemResource
 		}
 		this.address = addr;
 		this.migrate();
+	}
+	
+	private void setIP() {
+		this.info.setIpAddress(IPAddress.myIPAddress);
+		try {
+			this.myIP = Inet4Address.getByName(IPAddress.myIPAddress);
+		} catch (UnknownHostException e) {
+			// TODO 自動生成された catch ブロック
+			e.printStackTrace();
+		}
+		Scheduler.agentInfo.put(this.agentID, info);
+		primula.agent.util.DHTutil.setAgentIP(agentID, this.myIP);
 	}
 	
 	

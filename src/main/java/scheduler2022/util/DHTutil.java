@@ -8,7 +8,7 @@ import java.util.Set;
 import org.seasar.framework.container.factory.SingletonS2ContainerFactory;
 
 import primula.api.DHTChordAPI;
-import primula.api.core.agent.AgentInstanceInfo;
+import primula.api.core.agent.AgentClassInfo;
 import scheduler2022.DynamicPCInfo;
 import scheduler2022.Scheduler;
 import scheduler2022.StaticPCInfo;
@@ -81,7 +81,7 @@ public class DHTutil {
 		DHTChordAPI.put(keyCode + AcceptableCode + key, canAccept);
 	}
 	
-	public static void setAgentInfo(String key, AgentInstanceInfo agentInfo) {
+	public static void setAgentInfo(String key, AgentClassInfo agentInfo) {
 		DHTChordAPI.put(keyCode + AgentCode + key, agentInfo);
 	}
 	
@@ -106,8 +106,8 @@ public class DHTutil {
 	    return val != null && val; // null 安全
 	}
 	
-	public static AgentInstanceInfo getAgentInfo(String key) {
-		return (AgentInstanceInfo) DHTChordAPI.get(keyCode + AgentCode + key);
+	public static AgentClassInfo getAgentInfo(String key) {
+		return (AgentClassInfo) DHTChordAPI.get(keyCode + AgentCode + key);
 	}
 	
 	public static void removePcInfo(String key) {

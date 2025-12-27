@@ -44,7 +44,6 @@ import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
-import scheduler2022.util.DHTutil;
 
 public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
@@ -264,10 +263,8 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
         for (String agentId : slaveAgentIds) {
             try {
-                var info = DHTutil.getAgentInfo(agentId);
-                if (info == null || info.ipAddress == null) continue;
+            	InetAddress ip = primula.agent.util.DHTutil.getAgentIP(agentId);
 
-                InetAddress ip = InetAddress.getByName(info.ipAddress.trim());
                 KeyValuePair<InetAddress, Integer> dst = new KeyValuePair<>(ip, MSG_PORT);
 
                 MessageAPI.send(

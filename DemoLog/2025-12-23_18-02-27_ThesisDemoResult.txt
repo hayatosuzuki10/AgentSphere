@@ -1,0 +1,131 @@
+========== Thesis Demo Result ==========
+StartTime : 2025-12-23 18:02:27 , EndTime : 2025-12-23 18:32:29
+ElapsedTime : 1801946 ms
+
+---- Masters ----
+Expected : 3
+Finished : 2
+ - TSPMasterAgent id=3e5e79d7-e4ef-4d8c-93cf-3935ec989f81
+ - SortMasterAgent id=81a772c1-152d-4999-a02a-fe7306ca5ac3
+ - DL4JMSMaster id=c63b5e71-6508-4037-ab9f-923ec398e450
+
+---- Master Results ----
+[3e5e79d7-e4ef-4d8c-93cf-3935ec989f81]
+==== TSP Result ====
+MasterAgentID : 3e5e79d7-e4ef-4d8c-93cf-3935ec989f81
+cities        : 16
+workers       : 8
+bestCost      : 1350
+bestPath      : [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 2, 1]
+totalTime(ms) : 6052
+
+
+[81a772c1-152d-4999-a02a-fe7306ca5ac3]
+==== Sort Distributed Result ====
+MasterID   : 81a772c1-152d-4999-a02a-fe7306ca5ac3
+MasterIP   : 172.28.15.115
+Workers    : 8
+ArraySize  : 2000000
+Rounds     : 20
+StartTime  : 2025-12-23 18:02:27
+
+[Round 0]
+  roundTimeMs : 3024
+  sortedOK    : true
+
+[Round 1]
+  roundTimeMs : 1802
+  sortedOK    : true
+
+[Round 2]
+  roundTimeMs : 1638
+  sortedOK    : true
+
+[Round 3]
+  roundTimeMs : 3663
+  sortedOK    : true
+
+[Round 4]
+  roundTimeMs : 515615
+  sortedOK    : true
+
+[Round 5]
+  roundTimeMs : 21222
+  sortedOK    : true
+
+[Round 6]
+  roundTimeMs : 2169
+  sortedOK    : true
+
+[Round 7]
+  roundTimeMs : 1433
+  sortedOK    : true
+
+[Round 8]
+  roundTimeMs : 1465
+  sortedOK    : true
+
+[Round 9]
+  roundTimeMs : 2057
+  sortedOK    : true
+
+[Round 10]
+  roundTimeMs : 1629
+  sortedOK    : true
+
+[Round 11]
+  roundTimeMs : 1430
+  sortedOK    : true
+
+[Round 12]
+  roundTimeMs : 1881
+  sortedOK    : true
+
+[Round 13]
+  roundTimeMs : 1604
+  sortedOK    : true
+
+[Round 14]
+  roundTimeMs : 1420
+  sortedOK    : true
+
+[Round 15]
+  roundTimeMs : 1596
+  sortedOK    : true
+
+[Round 16]
+  roundTimeMs : 1969
+  sortedOK    : true
+
+[Round 17]
+  roundTimeMs : 1449
+  sortedOK    : true
+
+[Round 18]
+  roundTimeMs : 1676
+  sortedOK    : true
+
+[Round 19]
+  roundTimeMs : 2013
+  sortedOK    : true
+
+TotalTimeMs : 571927
+EndTime     : 2025-12-23 18:11:59
+
+
+---- Master Events (optional) ----
+(no master events)
+---- Agent Routes (optional) ----
+(no routes)
+
+---- PC Information (Static + Max/Min Dynamic) ----
+IP : 172.28.15.73
+Static : StaticPCInfo{CPU=CPU{Name='13th Gen Intel(R) Core(TM) i7-13700', Vendor='GenuineIntel', MicroArch='unknown', PhysicalCore=16, LogicalCore=24, BenchMarkScore=36691}, TotalMemory=16853479424, NetworkCards=25, GPUs=1}
+Max Dynamic : false,1766480547225,6.327387184315931,2112000000,0.9255596639168392,6898319360,11,GC[G1 Young Generation],1,112,GC[G1 Old Generation],0,0,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,net6,0,0,0,0,net5,0,0,0,0,eth8,48472905256,123640588905,101398528,89198703,eth7,48472905256,123640588905,101398044,89198703,eth6,48472905256,123640588905,101397423,89345879,eth5,0,0,0,0,eth4,48472905256,123640588905,101396610,90194150,eth3,0,0,0,0,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,eth9,48472905256,123640588905,101398991,88865425,ppp0,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,172.28.15.73,172.28.15.115,245.35761351383732,166.653104402311,null,null,
+Min Dynamic : false,1766480547225,3.6902632318261865,2112000000,0.01772151490756002,4313088,0,GC[G1 Young Generation],1,112,GC[G1 Old Generation],0,0,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,net6,0,0,0,0,net5,0,0,0,0,eth8,47893586897,122903914219,5386,9614,eth7,47893586897,122903914219,5386,9614,eth6,47893586897,122903914219,5386,9614,eth5,0,0,0,0,eth4,47893586897,122903914219,5386,9678,eth3,0,0,0,0,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,eth9,47893587236,122903914219,5386,9614,ppp0,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,172.28.15.73,172.28.15.115,245.35761351383732,166.653104402311,null,null,
+
+IP : 172.28.15.115
+Static : StaticPCInfo{CPU=CPU{Name='Intel(R) Core(TM) i7-10700 CPU @ 2.90GHz', Vendor='GenuineIntel', MicroArch='unknown', PhysicalCore=8, LogicalCore=16, BenchMarkScore=10259}, TotalMemory=16825712640, NetworkCards=49, GPUs=2}
+Max Dynamic : false,1766480546585,7.07430128253045,2904000000,0.9990684015202838,7916077056,21,GC[G1 Young Generation],5,280,GC[G1 Old Generation],0,0,NVIDIA GeForce GTX 1660 Ti,95,5938,6144,58,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,wlan9,0,0,0,0,wlan8,0,0,0,0,net6,0,0,0,0,wlan7,0,0,0,0,net5,0,0,0,0,wlan6,0,0,0,0,wlan5,0,0,0,0,wlan4,0,0,0,0,wlan3,0,0,0,0,wlan2,0,0,0,0,wlan1,0,0,0,0,eth8,151119864303,14399364328,120038506,103256511,wlan0,0,0,0,0,eth7,151119864249,14399364328,120038506,103256511,eth6,151119864249,14399364328,120038171,103256511,eth5,0,0,0,0,eth4,0,0,0,0,eth3,151119862654,14399363006,120058654,103408495,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,wlan20,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth17,0,0,0,0,eth16,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,eth18,0,0,0,0,wlan10,0,0,0,0,wlan11,0,0,0,0,wlan12,0,0,0,0,wlan13,0,0,0,0,wlan14,0,0,0,0,wlan15,0,0,0,0,wlan16,0,0,0,0,wlan17,0,0,0,0,wlan18,0,0,0,0,wlan19,0,0,0,0,eth9,151119864303,14399364328,120038506,103256511,ppp0,0,0,0,0,
+Min Dynamic : false,1766480546585,4.018849721903632,2904000000,0.044219783853218564,999837696,0,GC[G1 Young Generation],5,280,GC[G1 Old Generation],0,0,NVIDIA GeForce GTX 1660 Ti,0,553,6144,40,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,wlan9,0,0,0,0,wlan8,0,0,0,0,net6,0,0,0,0,wlan7,0,0,0,0,net5,0,0,0,0,wlan6,0,0,0,0,wlan5,0,0,0,0,wlan4,0,0,0,0,wlan3,0,0,0,0,wlan2,0,0,0,0,wlan1,0,0,0,0,eth8,150499614727,13941252513,2528,3023,wlan0,0,0,0,0,eth7,150499614727,13941252513,2528,3023,eth6,150499614727,13941252513,2528,3023,eth5,0,0,0,0,eth4,0,0,0,0,eth3,150499613675,13941251827,3739,3023,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,wlan20,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth17,0,0,0,0,eth16,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,eth18,0,0,0,0,wlan10,0,0,0,0,wlan11,0,0,0,0,wlan12,0,0,0,0,wlan13,0,0,0,0,wlan14,0,0,0,0,wlan15,0,0,0,0,wlan16,0,0,0,0,wlan17,0,0,0,0,wlan18,0,0,0,0,wlan19,0,0,0,0,eth9,150499614727,13941252513,2474,3023,ppp0,0,0,0,0,
+
