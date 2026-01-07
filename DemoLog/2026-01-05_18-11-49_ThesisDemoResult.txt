@@ -1,0 +1,235 @@
+========== Thesis Demo Result ==========
+StartTime : 2026-01-05 18:11:49 , EndTime : 2026-01-05 18:30:06
+ElapsedTime : 1097416 ms
+
+---- Masters ----
+Expected : 3
+Finished : 3
+ - TSPMasterAgent id=4f400005-cf18-44e9-b19c-41e77f6393de
+ - SortMasterAgent id=5d106a7e-9b07-4942-81af-b883fab23a87
+ - DL4JMSMaster id=60fe0254-268a-42bc-899c-52d46ace046b
+
+---- Master Results ----
+[5d106a7e-9b07-4942-81af-b883fab23a87]
+==== Sort Distributed Result ====
+MasterID   : 5d106a7e-9b07-4942-81af-b883fab23a87
+MasterIP   : 172.28.15.115
+Workers    : 8
+ArraySize  : 2000000
+Rounds     : 20
+StartTime  : 2026-01-05 18:11:49
+
+[Round 0]
+  roundTimeMs : 5051
+  sortedOK    : true
+
+[Round 1]
+  roundTimeMs : 497987
+  sortedOK    : true
+
+[Round 2]
+  roundTimeMs : 92205
+  sortedOK    : true
+
+[Round 3]
+  roundTimeMs : 20698
+  sortedOK    : true
+
+[Round 4]
+  roundTimeMs : 2175
+  sortedOK    : true
+
+[Round 5]
+  roundTimeMs : 2595
+  sortedOK    : true
+
+[Round 6]
+  roundTimeMs : 2829
+  sortedOK    : true
+
+[Round 7]
+  roundTimeMs : 2805
+  sortedOK    : true
+
+[Round 8]
+  roundTimeMs : 1833
+  sortedOK    : true
+
+[Round 9]
+  roundTimeMs : 2854
+  sortedOK    : true
+
+[Round 10]
+  roundTimeMs : 1759
+  sortedOK    : true
+
+[Round 11]
+  roundTimeMs : 2290
+  sortedOK    : true
+
+[Round 12]
+  roundTimeMs : 2069
+  sortedOK    : true
+
+[Round 13]
+  roundTimeMs : 1545
+  sortedOK    : true
+
+[Round 14]
+  roundTimeMs : 2442
+  sortedOK    : true
+
+[Round 15]
+  roundTimeMs : 2031
+  sortedOK    : true
+
+[Round 16]
+  roundTimeMs : 3026
+  sortedOK    : true
+
+[Round 17]
+  roundTimeMs : 2878
+  sortedOK    : true
+
+[Round 18]
+  roundTimeMs : 2420
+  sortedOK    : true
+
+[Round 19]
+  roundTimeMs : 3094
+  sortedOK    : true
+
+TotalTimeMs : 656298
+EndTime     : 2026-01-05 18:22:45
+
+
+[4f400005-cf18-44e9-b19c-41e77f6393de]
+==== TSP Result ====
+MasterAgentID : 4f400005-cf18-44e9-b19c-41e77f6393de
+cities        : 16
+workers       : 8
+bestCost      : 1350
+bestPath      : [0, 9, 10, 11, 12, 13, 14, 15, 8, 7, 6, 5, 4, 3, 2, 1]
+totalTime(ms) : 10758
+
+
+[60fe0254-268a-42bc-899c-52d46ace046b]
+==== DL4J Federated Learning Result ====
+MasterAgentID : 60fe0254-268a-42bc-899c-52d46ace046b
+MasterIP      : 172.28.15.115
+MSG_PORT      : 55878
+NUM_SLAVES    : 2
+ROUNDS        : 10
+BATCH_SIZE    : 32
+StartTime     : 2026-01-05 18:11:49
+
+[Round 1]
+  receivedModels: 1/2
+  sendMs        : 4554
+  waitMs        : 300111
+  avgMs         : 27
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=9466 serMs=1136
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: (no timing)
+
+[Round 2]
+  receivedModels: 2/2
+  sendMs        : 192703
+  waitMs        : 17155
+  avgMs         : 259
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=14043 serMs=866
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=10505 serMs=938
+
+[Round 3]
+  receivedModels: 2/2
+  sendMs        : 20129
+  waitMs        : 15901
+  avgMs         : 121
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=11339 serMs=1010
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=9693 serMs=1186
+
+[Round 4]
+  receivedModels: 2/2
+  sendMs        : 19379
+  waitMs        : 17872
+  avgMs         : 6
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=9649 serMs=1162
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=11114 serMs=1098
+
+[Round 5]
+  receivedModels: 1/2
+  sendMs        : 3555
+  waitMs        : 300061
+  avgMs         : 10
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=10118 serMs=1199
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: (no timing)
+
+[Round 6]
+  receivedModels: 2/2
+  sendMs        : 3480
+  waitMs        : 33201
+  avgMs         : 278
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=10152 serMs=1132
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=9852 serMs=995
+
+[Round 7]
+  receivedModels: 2/2
+  sendMs        : 3743
+  waitMs        : 33661
+  avgMs         : 7
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=9798 serMs=1184
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=9990 serMs=1131
+
+[Round 8]
+  receivedModels: 2/2
+  sendMs        : 4056
+  waitMs        : 33810
+  avgMs         : 122
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=9801 serMs=1275
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=9897 serMs=1112
+
+[Round 9]
+  receivedModels: 2/2
+  sendMs        : 3923
+  waitMs        : 35139
+  avgMs         : 45
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=9876 serMs=1446
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=9734 serMs=1382
+
+[Round 10]
+  receivedModels: 2/2
+  sendMs        : 21510
+  waitMs        : 17006
+  avgMs         : 4
+  slave d021d33f-68fd-4319-86d9-1451c381bb90: trainMs=9777 serMs=1280
+  slave 174875eb-fffa-4318-9b06-ff8945e5d188: trainMs=9990 serMs=1279
+
+Accuracy            : 0.4955
+Training Time(ms)   : 1090170
+Total Time(ms)      : 1096697
+TotalSendMs(sum)    : 277032
+TotalWaitMs(sum)    : 803917
+TotalAvgMs(sum)     : 879
+EndTime             : 2026-01-05 18:30:06
+
+
+---- Master Events (optional) ----
+(no master events)
+---- Agent Routes (optional) ----
+(no routes)
+
+---- PC Information (Static + Max/Min Dynamic) ----
+IP : 172.28.15.73
+Static : StaticPCInfo{CPU=CPU{Name='13th Gen Intel(R) Core(TM) i7-13700', Vendor='GenuineIntel', MicroArch='unknown', PhysicalCore=16, LogicalCore=24, BenchMarkScore=36691}, TotalMemory=16853479424, NetworkCards=25, GPUs=1}
+Max Dynamic : false,1767604309164,6.14457674338338,2112000000,0.30584810515214145,7223029760,8,GC[G1 Young Generation],0,247,GC[G1 Old Generation],0,0,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,net6,0,0,0,0,net5,0,0,0,0,eth8,3541868292,3798855718,350529052,202055452,eth7,3541868292,3798854546,350537036,202063954,eth6,3541868292,3798854546,350544691,202064888,eth5,0,0,0,0,eth4,3541861685,3798853069,350570448,202098051,eth3,0,0,0,0,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,eth9,3541869060,3798855718,350521453,202054438,ppp0,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,172.28.15.73,172.28.15.115,74.06737672013165,99.89147532587884,null,null,172.28.15.73,172.28.15.119,563.5275503886634,242.61809566118762,null,null,
+Min Dynamic : false,1767604309164,3.724830848881866,2112000000,0.040772297433501636,357822464,0,GC[G1 Young Generation],0,247,GC[G1 Old Generation],0,0,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,net6,0,0,0,0,net5,0,0,0,0,eth8,3109174616,3442042627,7839,18804,eth7,3109174616,3442042627,7839,18804,eth6,3109174616,3442042627,7839,18804,eth5,0,0,0,0,eth4,3109174281,3442042627,7525,18952,eth3,0,0,0,0,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,eth9,3109174616,3442042627,7839,18804,ppp0,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,172.28.15.73,172.28.15.115,74.06737672013165,99.89147532587884,null,null,172.28.15.73,172.28.15.119,563.5275503886634,242.61809566118762,null,null,
+
+IP : 172.28.15.115
+Static : StaticPCInfo{CPU=CPU{Name='Intel(R) Core(TM) i7-10700 CPU @ 2.90GHz', Vendor='GenuineIntel', MicroArch='unknown', PhysicalCore=8, LogicalCore=16, BenchMarkScore=10259}, TotalMemory=16825712640, NetworkCards=49, GPUs=2}
+Max Dynamic : false,1767604308732,7.233952822589374,2904000000,0.9345785116760978,8686542848,17,GC[G1 Young Generation],6,231,GC[G1 Old Generation],0,0,NVIDIA GeForce GTX 1660 Ti,95,5916,6144,58,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,wlan9,0,0,0,0,wlan8,0,0,0,0,net6,0,0,0,0,wlan7,0,0,0,0,net5,0,0,0,0,wlan6,0,0,0,0,wlan5,0,0,0,0,wlan4,0,0,0,0,wlan3,0,0,0,0,wlan2,0,0,0,0,wlan1,0,0,0,0,eth8,405284051795,247875211900,147999919,59240813,wlan0,0,0,0,0,eth7,405284051464,247875211900,147999919,58696440,eth6,405284051464,247875211840,147999588,58505494,eth5,0,0,0,0,eth4,0,0,0,0,eth3,405284050647,247875211601,148003041,60285579,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,wlan20,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth17,0,0,0,0,eth16,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,eth18,0,0,0,0,wlan10,0,0,0,0,wlan11,0,0,0,0,wlan12,0,0,0,0,wlan13,0,0,0,0,wlan14,0,0,0,0,wlan15,0,0,0,0,wlan16,0,0,0,0,wlan17,0,0,0,0,wlan18,0,0,0,0,wlan19,0,0,0,0,eth9,405284051795,247875211900,147999865,59784959,ppp0,0,0,0,0,
+Min Dynamic : false,1767604308732,3.980251614901785,2904000000,0.07945576117110986,2036686848,0,GC[G1 Young Generation],6,231,GC[G1 Old Generation],0,0,NVIDIA GeForce GTX 1660 Ti,0,339,6144,38,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,wlan9,0,0,0,0,wlan8,0,0,0,0,net6,0,0,0,0,wlan7,0,0,0,0,net5,0,0,0,0,wlan6,0,0,0,0,wlan5,0,0,0,0,wlan4,0,0,0,0,wlan3,0,0,0,0,wlan2,0,0,0,0,wlan1,0,0,0,0,eth8,404761045647,247615609850,13327,25949,wlan0,0,0,0,0,eth7,404761045647,247615609850,13327,25949,eth6,404761045647,247615609850,13982,25949,eth5,0,0,0,0,eth4,0,0,0,0,eth3,404761044893,247615609738,14143,25869,eth2,0,0,0,0,eth1,0,0,0,0,eth0,0,0,0,0,wlan20,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth17,0,0,0,0,eth16,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,eth18,0,0,0,0,wlan10,0,0,0,0,wlan11,0,0,0,0,wlan12,0,0,0,0,wlan13,0,0,0,0,wlan14,0,0,0,0,wlan15,0,0,0,0,wlan16,0,0,0,0,wlan17,0,0,0,0,wlan18,0,0,0,0,wlan19,0,0,0,0,eth9,404761045978,247615609850,13327,25949,ppp0,0,0,0,0,
+
+IP : 172.28.15.119
+Static : StaticPCInfo{CPU=CPU{Name='Intel(R) Core(TM) i7-10700 CPU @ 2.90GHz', Vendor='GenuineIntel', MicroArch='unknown', PhysicalCore=8, LogicalCore=16, BenchMarkScore=10259}, TotalMemory=17086181376, NetworkCards=25, GPUs=2}
+Max Dynamic : false,1767604309410,4.538218849448853,2904000000,0.40886203979043745,8338661376,18,GC[G1 Young Generation],2,378,GC[G1 Old Generation],0,0,NVIDIA GeForce GTX 1660 Ti,28,2561,6144,46,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,net6,0,0,0,0,net5,0,0,0,0,eth8,29530403603,23148007721,2195776,58988668,eth7,29530403603,23148007721,2195776,59028662,eth6,29530403603,23148007721,2195776,59058236,eth5,0,0,0,0,eth4,0,0,0,0,eth3,0,0,0,0,eth2,0,0,0,0,eth1,0,0,0,0,eth0,29530403268,23148007633,2229688,59267969,eth9,29530403603,23148007721,2184472,58918503,ppp0,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,
+Min Dynamic : false,1767604309410,3.307193933952517,2904000000,0.07123706751701697,2215632896,0,GC[G1 Young Generation],2,378,GC[G1 Old Generation],0,0,NVIDIA GeForce GTX 1660 Ti,0,1250,6144,44,net0,0,0,0,0,lo,0,0,0,0,net4,0,0,0,0,net3,0,0,0,0,net2,0,0,0,0,net1,0,0,0,0,net6,0,0,0,0,net5,0,0,0,0,eth8,29440677701,22830957832,23296,25075,eth7,29440677701,22830957832,23631,25104,eth6,29440677701,22830957832,23631,25104,eth5,0,0,0,0,eth4,0,0,0,0,eth3,0,0,0,0,eth2,0,0,0,0,eth1,0,0,0,0,eth0,29440677429,22830957486,21507,25104,eth9,29440677701,22830957832,23296,29569,ppp0,0,0,0,0,eth15,0,0,0,0,eth14,0,0,0,0,eth11,0,0,0,0,eth10,0,0,0,0,eth13,0,0,0,0,eth12,0,0,0,0,
+
