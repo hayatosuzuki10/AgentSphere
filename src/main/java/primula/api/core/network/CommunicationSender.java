@@ -119,6 +119,7 @@ public class CommunicationSender implements ICoreModule {
                     oos.flush();
                     oos.close();
                     socket.close();
+                    System.out.println("AgentSended to "+pair.getKey().getKey());
                 } catch (IOException ex) {
                     SystemAPI.getLogger().error(ex);
                 }

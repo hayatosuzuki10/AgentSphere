@@ -69,6 +69,7 @@ public class AgentAPI {
      * @param agent 転送するエージェント
      */
     public synchronized static void migration(KeyValuePair<InetAddress, Integer> address, AbstractAgent agent) {  
+    	System.out.println("migration");
     	getAgentManager().migrate(address, agent);
     }
     

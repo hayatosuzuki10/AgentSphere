@@ -4,11 +4,13 @@ import java.util.Arrays;
 
 import primula.agent.AbstractAgent;
 import primula.api.MessageAPI;
+import primula.api.core.assh.command.demo;
 import primula.api.core.network.AgentAddress;
 import primula.api.core.network.message.AbstractEnvelope;
 import primula.api.core.network.message.IMessageListener;
 import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
+import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 import scheduler2022.Scheduler;
 
@@ -17,6 +19,8 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
     private String masterId;
     private String masterIp;
     private int masterPort;
+    private String homeIP = IPAddress.myIPAddress;
+    private boolean finish = false;
 
     public void setMasterInfo(String masterId, String masterIp, int masterPort) {
         this.masterId = masterId;
@@ -32,12 +36,15 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
             e.printStackTrace();
         }
         System.out.println("[SortSlave] START id=" + getAgentID());
-        while (true) {
+        while (!finish) {
 
             nextDestination = Scheduler.getNextDestination(this);
             migrate(nextDestination);
             try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
         }
+
+        migrate(homeIP);
+        demo.reportAgentHistory(getAgentID(), buildHistoryText());
     }
 
     @Override
@@ -62,6 +69,8 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
         result.sortMs = sortMs;
 
         sendResult(result);
+        if(result.round == 10)
+        	finish = true;
     }
 
     private void sendResult(Serializable msg) {

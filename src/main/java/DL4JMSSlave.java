@@ -3,6 +3,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,11 +19,13 @@ import org.nd4j.linalg.factory.Nd4j;
 
 import primula.agent.AbstractAgent;
 import primula.api.MessageAPI;
+import primula.api.core.assh.command.demo;
 import primula.api.core.network.AgentAddress;
 import primula.api.core.network.message.AbstractEnvelope;
 import primula.api.core.network.message.IMessageListener;
 import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
+import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 import scheduler2022.Scheduler;
 
@@ -31,6 +34,8 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
     private String parentId;
     private String masterIp;
     private int masterPort = 55878;
+
+    private String homeIP = IPAddress.myIPAddress;
 
     private volatile boolean running = true;
     private final int batchSize = 32;
@@ -64,10 +69,13 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
         loaded = true;
 
         while (running) {
-        	nextDestination = Scheduler.getNextDestination(this);
+            nextDestination = Scheduler.getNextDestination(this);
             migrate(nextDestination);
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
         }
+
+        migrate(homeIP);
+        demo.reportAgentHistory(getAgentID(), buildHistoryText());
     }
 
     @Override
@@ -107,7 +115,6 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
                 long tRecv = System.currentTimeMillis();
 
                 try {
-                	
                     System.out.println("[Slave] Round " + round + " 学習開始");
 
                     model = ModelSerializer.restoreMultiLayerNetwork(
@@ -126,8 +133,12 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
                     byte[] updated = serializeModel(model);
                     long serMs = System.currentTimeMillis() - tSer0;
 
-                    // reply: [type=3][round][trainMs][serMs][modelBytes...]
-                    byte[] sendPayload = wrapTrainedPayload((byte)3, round, trainMs, serMs, updated);
+                    // ★変更点1: slaveId を payload に含める（Master側の新仕様に合わせる）
+                    String slaveId = getAgentID();
+
+                    // reply:
+                    // [type=3][round(int)][slaveIdLen(int)][slaveIdBytes][trainMs(long)][serMs(long)][modelBytes...]
+                    byte[] sendPayload = wrapTrainedPayload((byte)3, round, slaveId, trainMs, serMs, updated);
 
                     InetAddress ip = InetAddress.getByName(masterIp);
                     KeyValuePair<InetAddress, Integer> dst = new KeyValuePair<>(ip, masterPort);
@@ -142,7 +153,8 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
 
                     long totalMs = System.currentTimeMillis() - tRecv;
                     System.out.println("[Slave] Round " + round + " 返送完了 totalMs=" + totalMs
-                            + " trainMs=" + trainMs + " serMs=" + serMs);
+                            + " trainMs=" + trainMs + " serMs=" + serMs
+                            + " slaveId=" + slaveId);
 
                 } finally {
                     iter = null;
@@ -200,14 +212,32 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
         }
     }
 
-    /** reply payload: [type][round(int)][trainMs(long)][serMs(long)][modelBytes...] */
-    private byte[] wrapTrainedPayload(byte type, int round, long trainMs, long serMs, byte[] modelBytes) {
-        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + 8 + 8 + modelBytes.length);
+    /**
+     * ★変更点2:
+     * reply payload:
+     * [type][round(int)][slaveIdLen(int)][slaveIdBytes][trainMs(long)][serMs(long)][modelBytes...]
+     */
+    private byte[] wrapTrainedPayload(byte type, int round, String slaveId, long trainMs, long serMs, byte[] modelBytes) {
+        byte[] sidBytes = slaveId.getBytes(StandardCharsets.UTF_8);
+
+        ByteBuffer buf = ByteBuffer.allocate(
+                1                 // type
+              + 4                 // round
+              + 4                 // slaveIdLen
+              + sidBytes.length   // slaveIdBytes
+              + 8                 // trainMs
+              + 8                 // serMs
+              + modelBytes.length // modelBytes
+        );
+
         buf.put(type);
         buf.putInt(round);
+        buf.putInt(sidBytes.length);
+        buf.put(sidBytes);
         buf.putLong(trainMs);
         buf.putLong(serMs);
         buf.put(modelBytes);
+
         return buf.array();
     }
 

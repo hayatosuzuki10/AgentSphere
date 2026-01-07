@@ -5,6 +5,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -35,6 +36,38 @@ public abstract class AbstractAgent extends SystemResource
     public AgentInstanceInfo getAgentInfo() {
     	return info;
     }
+    
+    public static class history implements Serializable{
+		String ip;
+		long time;
+		history(String ip,long time){
+			this.ip = ip;
+			this.time = time;
+		}
+
+	}
+
+	private List<history> history = new ArrayList<history> ();
+	
+//    goto
+    public void RegistarHistory(String ip) {
+		long time = System.currentTimeMillis() - info.getStartTime();
+		for(int i=0;i<this.history.size();i++) {
+			time -= this.history.get(i).time;
+		}
+		this.history.add(new history(ip,time));
+	}
+	public long getHistoryTime(int num) {
+//		his.push(new);
+		return this.history.get(num).time;
+	}
+	public String getHistoryIP(int num) {
+		return this.history.get(num).ip;
+	}
+	public int getHistoryLength() {
+
+		return this.history.size();
+	}
 
 	/* Agent内部データ */
 	private String agentID;
@@ -539,5 +572,67 @@ public abstract class AbstractAgent extends SystemResource
 		this.shouldMove = true;
 	}
 
+	/**
+	 * demo.reportAgentHistory(...) に渡す用の履歴文字列を生成する。
+	 * 形式例:
+	 *   hops=3 totalMs=12345
+	 *   0) ip=172.28.15.115 stayMs=1200 cumulativeMs=1200
+	 *   1) ip=172.28.15.119 stayMs=3400 cumulativeMs=4600
+	 *   2) ip=172.28.15.73  stayMs=7745 cumulativeMs=12345
+	 *   currentIp=172.28.15.73
+	 *
+	 * 注意:
+	 * - stayMs は RegistarHistory() が積み上げた「前回移動からの滞在時間」
+	 * - 最後の滞在は run終了時点までの時間が history に入っていない場合があるので、
+	 *   currentIp と currentUptimeMs も併記する（必要なら後で改善可能）
+	 */
+	public String buildHistoryText() {
+	    StringBuilder sb = new StringBuilder();
+
+	    int hops = 0;
+	    try {
+	        hops = getHistoryLength();
+	    } catch (Throwable t) {
+	        return "(history read error: " + t.getClass().getSimpleName() + ")";
+	    }
+
+	    long totalMs = 0L;
+	    for (int i = 0; i < hops; i++) {
+	        try {
+	            totalMs += getHistoryTime(i);
+	        } catch (Throwable ignore) {}
+	    }
+
+	    sb.append("hops=").append(hops).append(" totalMs=").append(totalMs).append("\n");
+
+	    long cumulative = 0L;
+	    for (int i = 0; i < hops; i++) {
+	        String ip = "(unknown)";
+	        long stay = -1L;
+
+	        try { ip = getHistoryIP(i); } catch (Throwable ignore) {}
+	        try { stay = getHistoryTime(i); } catch (Throwable ignore) {}
+
+	        if (stay >= 0) cumulative += stay;
+
+	        sb.append(i).append(") ip=").append(ip)
+	          .append(" stayMs=").append(stay)
+	          .append(" cumulativeMs=").append(cumulative)
+	          .append("\n");
+	    }
+
+	    // 今いるIP（Primulaの実体IP）
+	    try {
+	        sb.append("currentIp=").append(IPAddress.myIPAddress).append("\n");
+	    } catch (Throwable ignore) {}
+
+	    // 起動からの経過時間も参考として載せる（historyの合計とズレることがある）
+	    try {
+	        long uptime = System.currentTimeMillis() - getAgentInfo().getStartTime();
+	        sb.append("currentUptimeMs=").append(uptime).append("\n");
+	    } catch (Throwable ignore) {}
+
+	    return sb.toString();
+	}
 
 }

@@ -3,6 +3,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -54,16 +55,24 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
     /** Primula Message の送受信ポート（あなたの環境に合わせて固定） */
     private static final int MSG_PORT = 55878;
 
+    private String homeIP = IPAddress.myIPAddress;
+
     /** Masterが生成したSlaveのAgentID */
     private final List<String> slaveAgentIds = new ArrayList<>();
 
-    /** roundごとに「どのslaveから何が返ってきたか」 */
+    /** slaveId -> report */
     private final Map<String, SlaveReport> lastReportsBySlave = new ConcurrentHashMap<>();
 
-    /** 受信したモデル（平均化用） */
+    /** slaveId -> state（平均化用） */
     private final Map<String, ModelState> receivedStates = new ConcurrentHashMap<>();
 
+    /** agentId -> InetAddress のキャッシュ（DHT解決が重い/詰まる対策） */
+    private final Map<String, InetAddress> agentIpCache = new ConcurrentHashMap<>();
+
     private MultiLayerNetwork masterModel;
+
+    /** 今待っているround（遅延パケット混入を捨てるため） */
+    private volatile int currentRound = -1;
 
     private static class ModelState {
         INDArray params;
@@ -94,6 +103,7 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
         // Slave 起動（配置/移動はScheduler任せ）
         // -------------------------
         slaveAgentIds.clear();
+        agentIpCache.clear();
 
         for (int i = 0; i < NUM_SLAVES; i++) {
             DL4JMSSlave slave = new DL4JMSSlave();
@@ -133,6 +143,8 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
         // 学習ラウンド
         // -------------------------
         for (int round = 1; round <= ROUNDS; round++) {
+            currentRound = round;
+
             receivedStates.clear();
             lastReportsBySlave.clear();
 
@@ -159,7 +171,7 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
             report.append("  waitMs        : ").append(waitMs).append("\n");
             report.append("  avgMs         : ").append(avgMs).append("\n");
 
-            // slave timings（返ってきたものだけ）
+            // slave timings（slaveIdで確定）
             for (String sid : slaveAgentIds) {
                 SlaveReport sr = lastReportsBySlave.get(sid);
                 if (sr == null) {
@@ -194,6 +206,10 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
         System.out.println(report.toString());
         safeReportToDemo(report.toString());
+        
+
+        migrate(homeIP);
+        demo.reportAgentHistory(getAgentID(), buildHistoryText());
     }
 
     /* =======================
@@ -202,19 +218,33 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
     @Override
     public void receivedMessage(AbstractEnvelope env) {
         try {
-            byte[] payload =
-                    (byte[]) ((StandardContentContainer) env.getContent()).getContent();
-
+            byte[] payload = (byte[]) ((StandardContentContainer) env.getContent()).getContent();
             if (payload == null || payload.length < 1) return;
 
             byte type = payload[0];
 
-            // type=3: [type][round(int)][trainMs(long)][serMs(long)][modelBytes...]
+            // slave -> master の想定フォーマット（type=3）
+            // [type][round(int)][slaveIdLen(int)][slaveIdBytes][trainMs(long)][serMs(long)][modelBytes...]
             if (type == 3) {
                 ByteBuffer buf = ByteBuffer.wrap(payload);
                 buf.get(); // type
 
                 int round = buf.getInt();
+
+                // ★変更点A：今待っているroundと違う返信は捨てる（遅延混入対策）
+                if (round != currentRound) {
+                    return;
+                }
+
+                int slaveIdLen = buf.getInt();
+                if (slaveIdLen < 1 || slaveIdLen > 2048 || buf.remaining() < slaveIdLen) {
+                    return; // 壊れたpayload防御
+                }
+
+                byte[] sidBytes = new byte[slaveIdLen];
+                buf.get(sidBytes);
+                String slaveId = new String(sidBytes, StandardCharsets.UTF_8);
+
                 long trainMs = buf.getLong();
                 long serMs = buf.getLong();
 
@@ -230,24 +260,16 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
                     state.updaterState = model.getUpdater().getStateViewArray().dup();
                 }
 
-                receivedStates.put("recv-" + System.nanoTime(), state);
+                // ★変更点B：slaveIdで上書き（nanoTimeキー廃止）
+                receivedStates.put(slaveId, state);
 
-                // 送ってきたslaveIdは env からは取れない場合があるので、
-                // 現実的には「受信順でOK」で十分だが、ここでは “最後に更新されたslave” として記録する
-                // → ちゃんと slaveId を付けたいなら payload に slaveId を入れる
                 SlaveReport sr = new SlaveReport();
                 sr.round = round;
                 sr.trainMs = trainMs;
                 sr.serMs = serMs;
                 sr.recvAt = System.currentTimeMillis();
 
-                // 近い代替：roundごとに「未記録のslaveへ順に埋める」
-                for (String sid : slaveAgentIds) {
-                    if (!lastReportsBySlave.containsKey(sid)) {
-                        lastReportsBySlave.put(sid, sr);
-                        break;
-                    }
-                }
+                lastReportsBySlave.put(slaveId, sr);
             }
 
         } catch (Exception e) {
@@ -263,7 +285,25 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
         for (String agentId : slaveAgentIds) {
             try {
-            	InetAddress ip = primula.agent.util.DHTutil.getAgentIP(agentId);
+                // ★変更点D：DHT解決をキャッシュ
+                InetAddress ip = agentIpCache.get(agentId);
+                if (ip == null) {
+                    long t0 = System.currentTimeMillis();
+                    ip = primula.agent.util.DHTutil.getAgentIP(agentId);
+                    long resolveMs = System.currentTimeMillis() - t0;
+
+                    if (ip != null) {
+                        agentIpCache.put(agentId, ip);
+                    }
+
+                    // 必要なら原因切り分け用ログ
+                    // System.out.println("[DL4JMSMaster] resolve ip for " + agentId + " = " + ip + " (" + resolveMs + "ms)");
+                }
+
+                if (ip == null) {
+                    // 解決できないなら送れない
+                    continue;
+                }
 
                 KeyValuePair<InetAddress, Integer> dst = new KeyValuePair<>(ip, MSG_PORT);
 
@@ -273,6 +313,7 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
                                 new AgentAddress(agentId),
                                 new StandardContentContainer(payload))
                 );
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -290,7 +331,9 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
     private void waitForSlaves(int round) {
         long deadline = System.currentTimeMillis() + 300_000;
+
         while (System.currentTimeMillis() < deadline) {
+            // ★変更点Bの恩恵：slaveIdで1人1票なのでsizeが正確
             if (receivedStates.size() >= NUM_SLAVES) break;
             try { Thread.sleep(200); } catch (InterruptedException ignored) {}
         }

@@ -47,6 +47,8 @@ public class SortMasterAgent extends AbstractAgent implements IMessageListener {
     /* =====================
      * 設定
      * ===================== */
+    
+    private String homeIP = IPAddress.myIPAddress;
 
     private final int arraySize = 2_000_000;
     private final int numWorkers = 8;
@@ -152,6 +154,9 @@ public class SortMasterAgent extends AbstractAgent implements IMessageListener {
 
         System.out.println(report.toString());
         safeReportToDemo(report.toString());
+
+        migrate(homeIP);
+        demo.reportAgentHistory(getAgentID(), buildHistoryText());
     }
 
     /* =====================

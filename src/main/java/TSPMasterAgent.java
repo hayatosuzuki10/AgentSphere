@@ -21,11 +21,14 @@ import primula.api.core.network.message.AbstractEnvelope;
 import primula.api.core.network.message.IMessageListener;
 import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
+import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 
 public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
 
     private static final int MSG_PORT = 55878;
+    
+    private String homeIP = IPAddress.myIPAddress;
 
     /** TSP インスタンスファイルパス（相対パス） */
     private String fileName = "others/tsp16.txt";
@@ -160,6 +163,10 @@ public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
         safeReportToDemo(report.toString());
 
         System.out.println("[TSPMaster] END id=" + getAgentID());
+        
+
+        migrate(homeIP);
+        demo.reportAgentHistory(getAgentID(), buildHistoryText());
     }
 
     /* =========================

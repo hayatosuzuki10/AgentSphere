@@ -35,9 +35,15 @@ import scheduler2022.util.DHTutil;
 /**
  * 修論用 demo:
  *  - TSPMasterAgent / SortMasterAgent / DL4JMSMaster を起動
- *  - 実行中に全ノードの DynamicPCInfo を収集して Max/Min を取る
+ *  - 実行中に全ノードの DynamicPCInfo を収集して Max/Min を取る（updateMax/updateMin）
  *  - 各Masterの終了結果（任意）も集める
  *  - 終了後に 1つのテキストへ保存
+ *  - ★追加：全Agent（Master/Slave含む）の migrate 履歴をログへ
+ *
+ * 重要:
+ *  - AbstractAgent に追加した history(List) は「エージェント本体」に保持されます。
+ *  - demo 側だけでは“全SlaveのAbstractAgentインスタンス”を掴めないため、
+ *    各Agentが終了時に demo.reportAgentHistory(...) を呼んで経路を渡す方式にしています。
  */
 public class demo extends AbstractCommand {
 
@@ -49,6 +55,9 @@ public class demo extends AbstractCommand {
 
     /** Master側から「イベントログ」を通知してもらう（任意） */
     private static final ConcurrentMap<String, List<String>> masterEvents = new ConcurrentHashMap<>();
+
+    /** ★追加：全Agent（Master/Slave含む）の移動履歴（文字列） */
+    private static final ConcurrentMap<String, String> agentHistories = new ConcurrentHashMap<>();
 
     /** デモ実行中のルート記録（既存互換） */
     public static List<String> routes = new ArrayList<>();
@@ -82,6 +91,16 @@ public class demo extends AbstractCommand {
                     .add(event);
     }
 
+    /**
+     * ★追加：任意のAgent(Master/Slave)が終了時に呼ぶ：移動履歴をdemoに渡す
+     * 例）demo.reportAgentHistory(getAgentID(), buildHistoryText());
+     */
+    public static void reportAgentHistory(String agentId, String historyText) {
+        if (agentId == null) agentId = "(unknown)";
+        if (historyText == null) historyText = "(null)";
+        agentHistories.put(agentId, historyText);
+    }
+
     @Override
     public List<Object> runCommand(List<String> fileNames, Object instance, List<String> opt) {
 
@@ -93,6 +112,7 @@ public class demo extends AbstractCommand {
         mastersFinished.set(0);
         masterResults.clear();
         masterEvents.clear();
+        agentHistories.clear(); // ★追加
 
         List<Object> resultList = new ArrayList<>();
         List<AbstractAgent> masters = new ArrayList<>();
@@ -197,6 +217,9 @@ public class demo extends AbstractCommand {
         return resultList;
     }
 
+    // =========================================================
+    // Max/Min 更新（あなたの実装をそのまま使用）
+    // =========================================================
     private static void updateMax(DynamicPCInfo maxDpi, DynamicPCInfo dpi) {
         maxDpi.LoadAverage = Math.max(maxDpi.LoadAverage, dpi.LoadAverage);
         if (maxDpi.CPU == null) maxDpi.CPU = new DynamicPCInfo.CPU();
@@ -214,10 +237,10 @@ public class demo extends AbstractCommand {
             if (maxGpu == null) {
                 maxDpi.GPUs.put(gpuId, copyGpu(cur));
             } else {
-                maxGpu.LoadPercent = Math.max(maxGpu.LoadPercent, cur.LoadPercent);
-                maxGpu.UsedMemory  = Math.max(maxGpu.UsedMemory,  cur.UsedMemory);
-                maxGpu.TotalMemory = Math.max(maxGpu.TotalMemory, cur.TotalMemory);
-                maxGpu.TemperatureC= Math.max(maxGpu.TemperatureC, cur.TemperatureC);
+                maxGpu.LoadPercent  = Math.max(maxGpu.LoadPercent,  cur.LoadPercent);
+                maxGpu.UsedMemory   = Math.max(maxGpu.UsedMemory,   cur.UsedMemory);
+                maxGpu.TotalMemory  = Math.max(maxGpu.TotalMemory,  cur.TotalMemory);
+                maxGpu.TemperatureC = Math.max(maxGpu.TemperatureC, cur.TemperatureC);
             }
         }
 
@@ -255,10 +278,10 @@ public class demo extends AbstractCommand {
             if (minGpu == null) {
                 minDpi.GPUs.put(gpuId, copyGpu(cur));
             } else {
-                minGpu.LoadPercent = Math.min(minGpu.LoadPercent, cur.LoadPercent);
-                minGpu.UsedMemory  = Math.min(minGpu.UsedMemory,  cur.UsedMemory);
-                minGpu.TotalMemory = Math.min(minGpu.TotalMemory, cur.TotalMemory);
-                minGpu.TemperatureC= Math.min(minGpu.TemperatureC, cur.TemperatureC);
+                minGpu.LoadPercent  = Math.min(minGpu.LoadPercent,  cur.LoadPercent);
+                minGpu.UsedMemory   = Math.min(minGpu.UsedMemory,   cur.UsedMemory);
+                minGpu.TotalMemory  = Math.min(minGpu.TotalMemory,  cur.TotalMemory);
+                minGpu.TemperatureC = Math.min(minGpu.TemperatureC, cur.TemperatureC);
             }
         }
 
@@ -279,6 +302,9 @@ public class demo extends AbstractCommand {
         }
     }
 
+    // =========================================================
+    // 結果文字列組み立て（★historyセクション追加）
+    // =========================================================
     private static String buildResultText(
             long startTime, long endTime, long elapsed,
             Map<String, String> masterIdToClass,
@@ -328,6 +354,19 @@ public class demo extends AbstractCommand {
             sb.append("(no routes)\n");
         } else {
             for (String r : routes) sb.append(r).append("\n");
+        }
+        sb.append("\n");
+
+        // ★追加：全Agentのmigrate履歴
+        sb.append("---- Agent Migration History (Master + Slave) ----\n");
+        if (agentHistories.isEmpty()) {
+            sb.append("(no agent history reported)\n");
+            sb.append("NOTE: Each agent (master/slave) should call demo.reportAgentHistory(agentId, historyText) on finish.\n");
+        } else {
+            for (Map.Entry<String, String> e : agentHistories.entrySet()) {
+                sb.append("[").append(e.getKey()).append("]\n");
+                sb.append(e.getValue()).append("\n\n");
+            }
         }
         sb.append("\n");
 
