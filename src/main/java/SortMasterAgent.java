@@ -155,7 +155,7 @@ public class SortMasterAgent extends AbstractAgent implements IMessageListener {
         System.out.println(report.toString());
         safeReportToDemo(report.toString());
 
-        migrate(homeIP);
+        //migrate(homeIP);
         demo.reportAgentHistory(getAgentID(), buildHistoryText());
     }
 

@@ -165,7 +165,7 @@ public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
         System.out.println("[TSPMaster] END id=" + getAgentID());
         
 
-        migrate(homeIP);
+        //migrate(homeIP);
         demo.reportAgentHistory(getAgentID(), buildHistoryText());
     }
 
