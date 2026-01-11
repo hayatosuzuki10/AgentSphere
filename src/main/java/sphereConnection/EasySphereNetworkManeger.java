@@ -103,11 +103,18 @@ public class EasySphereNetworkManeger implements ICoreModule {
 			reciver = new Reciver(this);
 			timeoutChecker = new TimeoutChecker();
 			sender.setName("E-NetworkManeger-Sender");
-			sender.start();
+			sender.setPriority(Thread.NORM_PRIORITY + 2);   // 7
+
 			reciver.setName("E-NetworkManeger-reciver");
-			reciver.start();
+			reciver.setPriority(Thread.MAX_PRIORITY);       // 10（受信は最優先）
+
 			timeoutChecker.setName("E-NetworkManeger-TimeoutChecker");
+			timeoutChecker.setPriority(Thread.NORM_PRIORITY + 1); // 6
+
+			sender.start();
+			reciver.start();
 			timeoutChecker.start();
+			
 
 			ready.countDown();
 		} catch (IOException e) {
