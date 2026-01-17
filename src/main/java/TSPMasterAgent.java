@@ -83,6 +83,9 @@ public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
         public int[] bestPath;
     }
 
+    public void setProblemFile(String fileName){
+    	this.fileName = fileName;
+    }
     @Override
     public void run() {
 
@@ -135,7 +138,16 @@ public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
             msg.distanceMatrix = distanceMatrix;
             msg.masterId = getAgentID();
 
-            sendToAgent(agent.getAgentID(), agent.getmyIP(), msg);
+            InetAddress ip = null;
+        	while (true) {
+        	    Object raw = primula.agent.util.DHTutil.getAgentIP(agent.getAgentID());
+        	    if(raw instanceof InetAddress) {
+            		ip = (InetAddress) raw;
+            		break;
+            	}
+        	    try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+        	}
+            sendToAgent(agent.getAgentID(), ip, msg);
 
             System.out.println("[TSPMaster] Slave started w=" + w
                     + " slaveId=" + agent.getAgentID()
@@ -166,7 +178,7 @@ public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
         
 
         //migrate(homeIP);
-        demo.reportAgentHistory(getAgentID(), buildHistoryText());
+        demo.reportAgentHistory(getAgentID(), getAgentName(),  buildHistoryText());
     }
 
     /* =========================

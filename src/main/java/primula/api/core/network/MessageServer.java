@@ -34,32 +34,45 @@ public class MessageServer implements IMessageServer {
 
     @Override
     public void send(AbstractEnvelope envelope) {
-    	//System.err.println("MessageServer:send to "+envelope.getTargetAgentAddress().getAddress()+" "+envelope.getContent());
         try {
-            AbstractEnvelope newEnvelope;
-            newEnvelope = AgentUtil.easyDeepCopy(envelope);
+            AbstractEnvelope newEnvelope = AgentUtil.easyDeepCopy(envelope);
+
             for (IMessageListener listener : messageListeners) {
-                if ((listener.getStrictName() == null ? newEnvelope.getTargetAgentAddress().getAddress() == null : listener.getStrictName().equals(newEnvelope.getTargetAgentAddress().getAddress()))
-                        || (listener.getSimpleName() == null ? newEnvelope.getTargetAgentAddress().getAddress() == null : listener.getSimpleName().equals(newEnvelope.getTargetAgentAddress().getAddress()))) {
-                    //System.out.println("ifの中:"+listener);
+                if ((listener.getStrictName() == null ? newEnvelope.getTargetAgentAddress().getAddress() == null
+                        : listener.getStrictName().equals(newEnvelope.getTargetAgentAddress().getAddress()))
+                    || (listener.getSimpleName() == null ? newEnvelope.getTargetAgentAddress().getAddress() == null
+                        : listener.getSimpleName().equals(newEnvelope.getTargetAgentAddress().getAddress()))) {
+
+                    System.out.println("ifの中:" + listener);
                     listener.receivedMessage(newEnvelope);
                     return;
                 }
             }
-            //存在しなかった場合
-            if(newEnvelope.getTTL()>0&&DHTutil.containsAgentIP(newEnvelope.getTargetAgentAddress().getAddress())) {
-            	newEnvelope.decrementTTL();
-            	InetAddress resendAddr=DHTutil.getAgentIP(newEnvelope.getTargetAgentAddress().getAddress());
-            	//System.err.println("MessageServer:resend to "+resendAddr.getHostName());
-            	send(new KeyValuePair<InetAddress, Integer>(resendAddr, 55878),newEnvelope);
-            	return;
-            }
-            //TTL0なので廃棄
-            //System.err.println("MessageServer:"+envelope+"を廃棄しました");
 
-        } catch (IOException ex) {
-            Logger.getLogger(MessageServer.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ClassNotFoundException ex) {
+            // リスナーに存在しなかった場合 → DHT経由で再送
+            if (newEnvelope.getTTL() > 0 && DHTutil.containsAgentIP(newEnvelope.getTargetAgentAddress().getAddress())) {
+                newEnvelope.decrementTTL();
+                InetAddress resendAddr = DHTutil.getAgentIP(newEnvelope.getTargetAgentAddress().getAddress());
+
+                System.err.println("[MessageServer] TTL残り=" + newEnvelope.getTTL() + 
+                                   " → 再送先IP=" + resendAddr.getHostAddress() + 
+                                   " agentID=" + newEnvelope.getTargetAgentAddress().getAddress());
+
+                send(new KeyValuePair<>(resendAddr, 55878), newEnvelope);
+                return;
+            }
+
+            // TTL = 0 or DHTにも存在しない → 廃棄
+            String targetId = newEnvelope.getTargetAgentAddress().getAddress();
+            boolean existedInDHT = DHTutil.containsAgentIP(targetId);
+            int ttl = newEnvelope.getTTL();
+
+            System.err.println("[MessageServer] メッセージ廃棄: agentID=" + targetId +
+                               " TTL=" + ttl +
+                               " DHT存在=" + existedInDHT +
+                               " envelope=" + envelope);
+
+        } catch (IOException | ClassNotFoundException ex) {
             Logger.getLogger(MessageServer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }

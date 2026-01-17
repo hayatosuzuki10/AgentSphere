@@ -221,6 +221,7 @@ public abstract class AbstractAgent extends SystemResource
 		}
 		setIP();
 		if (Javaflow == null) {
+
 			//susspend(=migrate())が中で呼ばれていればその時点での状態を表すインスタンス、run()が終了していればnullが返る
 			Javaflow = Continuation.startWith(this);
 			
@@ -231,6 +232,7 @@ public abstract class AbstractAgent extends SystemResource
 			AgentInstanceInfo info = Scheduler.agentInfo.get(agentID);
 					
 			info.setMigrateTime(this.info.getMigrateTime());
+
 			Javaflow = Javaflow.resume();
 		}
 
@@ -255,11 +257,14 @@ public abstract class AbstractAgent extends SystemResource
 			//System.out.println("//Migration//");
 			//System.err.println(this.getAgentName() + ":Migration to " + address.getKey().getHostAddress());
 
-			primula.agent.util.DHTutil.removeAgentIP(getAgentID());
+			primula.agent.util.DHTutil.removeAgentIP(agentID);
 
+			RegistarHistory(IPAddress.myIPAddress);
 			AgentAPI.migration(address, this);
 			return;
 		}
+
+		RegistarHistory(IPAddress.myIPAddress);
 	}
 
 

@@ -20,7 +20,10 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
     private String masterIp;
     private int masterPort;
     private String homeIP = IPAddress.myIPAddress;
-    private boolean finish = false;
+    private volatile boolean finish = false;
+    private volatile int totalRounds = -1;
+    private volatile boolean initialized = false;
+    private volatile boolean canMigrate = true;
 
     public void setMasterInfo(String masterId, String masterIp, int masterPort) {
         this.masterId = masterId;
@@ -35,26 +38,69 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         System.out.println("[SortSlave] START id=" + getAgentID());
+
+    
+
         while (!finish) {
+            if (!initialized) {
 
-            nextDestination = Scheduler.getNextDestination(this);
-            migrate(nextDestination);
-            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+                try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+                continue;
+            }
+            String dest = Scheduler.getNextDestination(this);
+            migrate(dest);
+            try {
+                MessageAPI.registerMessageListener(this);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
+
+            
+
+            try { Thread.sleep(10000); } catch (InterruptedException ignored) {}
+        	
         }
-
+        System.out.println("[SortSlave] finish=true, leaving loop");
+        System.out.println("[SortSlave] homeIP=" + homeIP + " cur=" + IPAddress.myIPAddress);
         migrate(homeIP);
-        demo.reportAgentHistory(getAgentID(), buildHistoryText());
+        demo.reportAgentHistory(getAgentID(), getAgentName(), buildHistoryText());
     }
 
     @Override
     public void receivedMessage(AbstractEnvelope envelope) {
-    	
         Object raw = ((StandardContentContainer) envelope.getContent()).getContent();
-        if (!(raw instanceof SortMasterAgent.SortTaskMessage)) return;
 
-        SortMasterAgent.SortTaskMessage msg =
-                (SortMasterAgent.SortTaskMessage) raw;
+        // STOP
+        if (raw instanceof SortMasterAgent.StopMessage) {
+            System.out.println("[SortSlave] STOP received id=" + getAgentID());
+            finish = true;
+            return;
+        }
+
+        // Init
+        if (raw instanceof SortMasterAgent.SortInitMessage) {
+            SortMasterAgent.SortInitMessage init = (SortMasterAgent.SortInitMessage) raw;
+            this.totalRounds = init.totalRounds;
+            this.initialized = true;
+            System.out.println(
+                "[SortSlave] INIT received id=" + getAgentID() +
+                " totalRounds=" + totalRounds
+            );
+            return;
+        }
+
+        // Task
+        if (!(raw instanceof SortMasterAgent.SortTaskMessage)) return;
+        SortMasterAgent.SortTaskMessage msg = (SortMasterAgent.SortTaskMessage) raw;
+
+        System.out.println(
+            "[SortSlave] TASK received id=" + getAgentID() +
+            " round=" + msg.round +
+            " segmentSize=" + msg.segment.length
+        );
 
         long t0 = System.currentTimeMillis();
         int[] segment = msg.segment;
@@ -69,8 +115,17 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
         result.sortMs = sortMs;
 
         sendResult(result);
-        if(result.round == 10)
-        	finish = true;
+
+        System.out.println(
+            "[SortSlave] RESULT sent id=" + getAgentID() +
+            " round=" + msg.round +
+            " sortMs=" + sortMs
+        );
+
+        if (initialized && msg.round >= totalRounds - 1) {
+            System.out.println("[SortSlave] FINISH flag set id=" + getAgentID());
+            finish = true;
+        }
     }
 
     private void sendResult(Serializable msg) {

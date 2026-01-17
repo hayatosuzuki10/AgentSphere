@@ -51,7 +51,6 @@ public class DHTutil {
 	    if (cpi.isForecast) {
 	        DHTChordAPI.put(keyCode + PICode + key, cpi);
 	        DHTChordAPI.put(keyCode + PIStampCode + key, Instant.now());
-	        System.out.println("}}}}}}}}}}}}}}}}}");
 	        return;
 	    }
 
@@ -62,14 +61,13 @@ public class DHTutil {
 	            (prevDPI.timeStanp + timeStampExpire > now);
 
 	    if (prevIsValidForecast) {;
-	        System.out.println("||||||||||||||||||||| skip real because prev forecast still valid");
 	        return;
 	    }
 
 	    // ③ それ以外はセットしてよい
 	    DHTChordAPI.put(keyCode + PICode + key, cpi);
 	    DHTChordAPI.put(keyCode + PIStampCode + key, Instant.now());
-	    System.out.println("+++++++++++++++" );
+	    
 	}
 	
 	public static void setStaticPCInfo(String key, StaticPCInfo spi) {

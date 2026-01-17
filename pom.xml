@@ -12,6 +12,9 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
+
+    <!-- javaflow plugin用（デフォルトはfalse相当） -->
+    <javaflow.skip>false</javaflow.skip>
   </properties>
 
   <!-- =====================
@@ -75,12 +78,12 @@
       <artifactId>s2-framework</artifactId>
       <version>2.4.43</version>
     </dependency>
-    
+
     <dependency>
-  <groupId>org.jocl</groupId>
-  <artifactId>jocl</artifactId>
-  <version>2.0.4</version>
-</dependency>
+      <groupId>org.jocl</groupId>
+      <artifactId>jocl</artifactId>
+      <version>2.0.4</version>
+    </dependency>
 
     <!-- json -->
     <dependency>
@@ -152,18 +155,28 @@
       <version>2.4.2</version>
     </dependency>
 
-    <!-- DL4J / ND4J (最低限・CPU) -->
+    <!-- DL4J / ND4J -->
     <dependency>
       <groupId>org.deeplearning4j</groupId>
       <artifactId>deeplearning4j-core</artifactId>
       <version>1.0.0-M2.1</version>
     </dependency>
 
+    <!-- GPU(CUDA 11.6) platform -->
+    <dependency>
+      <groupId>org.nd4j</groupId>
+      <artifactId>nd4j-cuda-11.6-platform</artifactId>
+      <version>1.0.0-M2.1</version>
+    </dependency>
+
+    <!-- ↑CPUのnd4j-native-platformは基本的に入れない（競合/混在を避ける） -->
+    <!--
     <dependency>
       <groupId>org.nd4j</groupId>
       <artifactId>nd4j-native-platform</artifactId>
       <version>1.0.0-M2.1</version>
     </dependency>
+    -->
 
   </dependencies>
 

@@ -55,7 +55,7 @@ public class ReadySendAgentPool {
 
     private void notifyAgentAdded(String agentID, String agentName) {
     	for (ReadySendAgentPoolListener listener : agentListeners) {
-        	System.out.println(listener);
+        	
             listener.readySendAgentAdded(agentID, agentName);
         }
         

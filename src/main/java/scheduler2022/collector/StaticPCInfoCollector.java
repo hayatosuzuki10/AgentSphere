@@ -39,20 +39,39 @@ public class StaticPCInfoCollector implements Serializable {
     }
 
     public StaticPCInfo collect() {
+
         // CPU
-        StaticPCInfo.CPU cpu = readCpu();
-        applyCpuBenchmark(cpu);
+        StaticPCInfo.CPU cpu = null;
+        try {
+            cpu = readCpu();
+            if (cpu != null) {
+                applyCpuBenchmark(cpu);
+            }
+        } catch (Exception ignored) {}
 
         // Memory
-        GlobalMemory mem = hal.getMemory();
-        long total = mem.getTotal();
+        long total = -1;
+        try {
+            GlobalMemory mem = hal.getMemory();
+            if (mem != null) {
+                total = mem.getTotal();
+            }
+        } catch (Exception ignored) {}
 
         // NIC
-        Map<String, StaticPCInfo.NetworkCard> nics = readNics();
+        Map<String, StaticPCInfo.NetworkCard> nics = null;
+        try {
+            nics = readNics();
+        } catch (Exception ignored) {}
 
         // GPU
-        Map<String, StaticPCInfo.GPU> gpus = readGpus();
-        applyGpuBenchmark(gpus);
+        Map<String, StaticPCInfo.GPU> gpus = null;
+        try {
+            gpus = readGpus();
+            if (gpus != null) {
+                applyGpuBenchmark(gpus);
+            }
+        } catch (Exception ignored) {}
 
         return new StaticPCInfo(cpu, total, nics, gpus);
     }

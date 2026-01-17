@@ -16,7 +16,6 @@ import scheduler2022.Scheduler;
 public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
 
     private static final int MSG_PORT = 55878;
-
     private String homeIP = IPAddress.myIPAddress;
 
     private int numCities;
@@ -34,9 +33,6 @@ public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
 
     @Override
     public void run() {
-    	System.out.println("[TSPSlave] loader=" + this.getClass().getClassLoader());
-    	System.out.println("[TSPSlave] codeSource=" +
-    	    this.getClass().getProtectionDomain().getCodeSource());
         try {
             MessageAPI.registerMessageListener(this);
         } catch (Exception e) {
@@ -58,13 +54,19 @@ public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
 
         nextDestination = Scheduler.getNextDestination(this);
         migrate(nextDestination);
+        try {
+            MessageAPI.registerMessageListener(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
         solveTSP();
         sendResultToMaster();
 
         System.out.println("[TSPSlave] END workerId=" + workerId + " bestCost=" + bestCost);
 
         migrate(homeIP);
-        demo.reportAgentHistory(getAgentID(), buildHistoryText());
+        demo.reportAgentHistory(getAgentID(), getAgentName(),  buildHistoryText());
     }
 
     @Override

@@ -23,6 +23,7 @@ import org.apache.log4j.Logger;
 
 import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
+import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.agent.loader.multiloader.ChainContainer;
 import primula.api.core.agent.loader.multiloader.GhostClassLoader;
 import primula.api.core.agent.loader.multiloader.StringSelector;
@@ -67,6 +68,62 @@ public class demo extends AbstractCommand {
     public static Map<String, DynamicPCInfo> Min = new HashMap<>();
     public static Map<String, StaticPCInfo> staticPCInfos = new HashMap<>();
 
+    private static class DemoConfig {
+        int dl4jRounds = 5;
+        int sortRounds = 20;
+        String tspFile = "others/tsp16.txt"; // デフォルト
+
+        @Override public String toString(){
+            return "DemoConfig{dl4jRounds=" + dl4jRounds
+                + ", sortRounds=" + sortRounds
+                + ", tspFile=" + tspFile + "}";
+        }
+    }
+
+    private static DemoConfig parseOpt(List<String> opt){
+        DemoConfig c = new DemoConfig();
+        if (opt == null || opt.isEmpty()) return c;
+
+        // 1) まず key=value を処理
+        for (String s : opt) {
+            if (s == null) continue;
+            String t = s.trim();
+            while (t.startsWith("-")) t = t.substring(1);
+            int eq = t.indexOf('=');
+            if (eq < 0) continue;
+
+            String key = t.substring(0, eq).trim();
+            String val = t.substring(eq + 1).trim();
+
+            try {
+                switch (key) {
+                    case "dl4jRounds": c.dl4jRounds = Integer.parseInt(val); break;
+                    case "sortRounds": c.sortRounds = Integer.parseInt(val); break;
+                    case "tspFile":    c.tspFile = val; break;
+                }
+            } catch (Exception ignore) {}
+        }
+
+        // 2) 次に位置引数（"5" "20" "file"）を拾う
+        //    ※ key=value が無い純粋な数字/文字列だけを順に採用
+        List<String> positional = new ArrayList<>();
+        for (String s : opt) {
+            if (s == null) continue;
+            String t = s.trim();
+            if (t.contains("=")) continue;
+            if (t.startsWith("-")) continue; // -h みたいなのは除外
+            positional.add(t);
+        }
+
+        try {
+            if (positional.size() >= 1) c.dl4jRounds = Integer.parseInt(positional.get(0));
+            if (positional.size() >= 2) c.sortRounds = Integer.parseInt(positional.get(1));
+            if (positional.size() >= 3) c.tspFile = positional.get(2);
+        } catch (Exception ignore) {}
+
+        return c;
+    }
+
     /** 起動する Master のクラス名（bin 直下にある前提） */
     private static final List<String> MASTER_CLASS_NAMES = Arrays.asList(
             "TSPMasterAgent",
@@ -87,22 +144,46 @@ public class demo extends AbstractCommand {
     /** Masterが任意で呼ぶ：途中経過ログ（任意） */
     public static void logMasterEvent(String masterAgentId, String event) {
         if (masterAgentId == null) masterAgentId = "(unknown)";
-        masterEvents.computeIfAbsent(masterAgentId, k -> Collections.synchronizedList(new ArrayList<>()))
-                    .add(event);
+        masterEvents
+            .computeIfAbsent(masterAgentId, k -> Collections.synchronizedList(new ArrayList<>()))
+            .add(event);
     }
 
     /**
      * ★追加：任意のAgent(Master/Slave)が終了時に呼ぶ：移動履歴をdemoに渡す
-     * 例）demo.reportAgentHistory(getAgentID(), buildHistoryText());
+     * 例）demo.reportAgentHistory(getAgentID(), getAgentName(), buildHistoryText());
      */
-    public static void reportAgentHistory(String agentId, String historyText) {
+    public static void reportAgentHistory(String agentId, String agentName, String historyText) {
         if (agentId == null) agentId = "(unknown)";
+        if (agentName == null) agentName = "(unknown)";
         if (historyText == null) historyText = "(null)";
-        agentHistories.put(agentId, historyText);
+        agentHistories.put(agentName + " id=" + agentId, historyText);
     }
 
     @Override
     public List<Object> runCommand(List<String> fileNames, Object instance, List<String> opt) {
+
+    	
+    	Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+    	    System.err.println("=== Uncaught Exception ===");
+    	    System.err.println("Thread : " + t.getName());
+    	    if (e != null) {
+    	        e.printStackTrace();
+    	    } else {
+    	        System.err.println("Exception is null");
+    	    }
+    	});
+        // opt + fileNames を合わせて parse する
+        List<String> args = new ArrayList<>();
+        if (opt != null) args.addAll(opt);
+        if (fileNames != null) args.addAll(fileNames);
+
+        DemoConfig cfg = parseOpt(args);
+
+        System.out.println("[demo] raw opt=" + opt);
+        System.out.println("[demo] fileNames=" + fileNames);
+        System.out.println("[demo] merged args=" + args);
+        System.out.println("[demo] " + cfg);
 
         // ---------- 初期化 ----------
         routes.clear();
@@ -112,7 +193,7 @@ public class demo extends AbstractCommand {
         mastersFinished.set(0);
         masterResults.clear();
         masterEvents.clear();
-        agentHistories.clear(); // ★追加
+        agentHistories.clear();
 
         List<Object> resultList = new ArrayList<>();
         List<AbstractAgent> masters = new ArrayList<>();
@@ -131,16 +212,28 @@ public class demo extends AbstractCommand {
         long startTime = System.currentTimeMillis();
 
         for (String className : MASTER_CLASS_NAMES) {
-            Object agentInstance = loadAgentInstance(className);
 
+            Object agentInstance = loadAgentInstance(className);
             if (!(agentInstance instanceof AbstractAgent)) {
                 System.err.println("[demo] Failed to instantiate: " + className);
                 continue;
             }
-
             AbstractAgent agent = (AbstractAgent) agentInstance;
 
-            // 起動
+            // クラス名で分岐（単純でOK）
+            String simple = agent.getClass().getSimpleName();
+            if (simple.equals("DL4JMSMaster")) {
+                tryInvokeSetter(agent, "setRounds", int.class, cfg.dl4jRounds);
+            }
+            if (simple.equals("SortMasterAgent")) {
+                tryInvokeSetter(agent, "setRounds", int.class, cfg.sortRounds);
+            }
+            if (simple.equals("TSPMasterAgent")) {
+                tryInvokeSetter(agent, "setProblemFile", String.class, cfg.tspFile);
+                // もしメソッド名が違う可能性があるなら保険で：
+                tryInvokeSetter(agent, "setFileName", String.class, cfg.tspFile);
+            }
+
             AgentAPI.runAgent(agent);
 
             masters.add(agent);
@@ -161,7 +254,6 @@ public class demo extends AbstractCommand {
 
         while (mastersFinished.get() < expectedMasters && System.currentTimeMillis() < deadline) {
 
-            // 全ノードの DynamicPCInfo を収集して Max/Min 更新
             for (String ip : currentIPs) {
                 DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
 
@@ -201,14 +293,12 @@ public class demo extends AbstractCommand {
         long endTime = System.currentTimeMillis();
         long elapsed = endTime - startTime;
 
-        // ---------- 結果文字列を組み立て ----------
         String resultText = buildResultText(
                 startTime, endTime, elapsed,
                 masterIdToClass, expectedMasters,
                 currentIPs
         );
 
-        // ---------- ファイル保存 ----------
         saveToFile(startTime, resultText);
 
         System.out.println("[demo] Finished. elapsed=" + elapsed + "ms finishedMasters="
@@ -217,14 +307,27 @@ public class demo extends AbstractCommand {
         return resultList;
     }
 
+    private static void tryInvokeSetter(Object target, String method, Class<?> argType, Object arg){
+        try {
+            target.getClass().getMethod(method, argType).invoke(target, arg);
+            System.out.println("[demo] set " + method + "(" + arg + ") on " + target.getClass().getName());
+        } catch (NoSuchMethodException e) {
+            // setter無いなら無視
+        } catch (Exception e) {
+            System.err.println("[demo] failed " + method + " on " + target.getClass().getName() + ": " + e);
+        }
+    }
+
     // =========================================================
-    // Max/Min 更新（あなたの実装をそのまま使用）
+    // Max/Min 更新
     // =========================================================
     private static void updateMax(DynamicPCInfo maxDpi, DynamicPCInfo dpi) {
         maxDpi.LoadAverage = Math.max(maxDpi.LoadAverage, dpi.LoadAverage);
+
         if (maxDpi.CPU == null) maxDpi.CPU = new DynamicPCInfo.CPU();
         maxDpi.CPU.ClockSpeed = Math.max(maxDpi.CPU.ClockSpeed, dpi.CPU.ClockSpeed);
         maxDpi.CPU.LoadPercentByMXBean = Math.max(maxDpi.CPU.LoadPercentByMXBean, dpi.CPU.LoadPercentByMXBean);
+
         maxDpi.FreeMemory = Math.max(maxDpi.FreeMemory, dpi.FreeMemory);
         maxDpi.AgentsNum = Math.max(maxDpi.AgentsNum, dpi.AgentsNum);
 
@@ -233,6 +336,7 @@ public class demo extends AbstractCommand {
             String gpuId = e.getKey();
             DynamicPCInfo.GPU cur = e.getValue();
             if (cur == null) continue;
+
             DynamicPCInfo.GPU maxGpu = maxDpi.GPUs.get(gpuId);
             if (maxGpu == null) {
                 maxDpi.GPUs.put(gpuId, copyGpu(cur));
@@ -249,6 +353,7 @@ public class demo extends AbstractCommand {
             String iface = e.getKey();
             DynamicPCInfo.NetworkCard cur = e.getValue();
             if (cur == null) continue;
+
             DynamicPCInfo.NetworkCard maxCard = maxDpi.NetworkCards.get(iface);
             if (maxCard == null) {
                 maxDpi.NetworkCards.put(iface, copyNetCard(cur));
@@ -263,9 +368,11 @@ public class demo extends AbstractCommand {
 
     private static void updateMin(DynamicPCInfo minDpi, DynamicPCInfo dpi) {
         minDpi.LoadAverage = Math.min(minDpi.LoadAverage, dpi.LoadAverage);
+
         if (minDpi.CPU == null) minDpi.CPU = new DynamicPCInfo.CPU();
         minDpi.CPU.ClockSpeed = Math.min(minDpi.CPU.ClockSpeed, dpi.CPU.ClockSpeed);
         minDpi.CPU.LoadPercentByMXBean = Math.min(minDpi.CPU.LoadPercentByMXBean, dpi.CPU.LoadPercentByMXBean);
+
         minDpi.FreeMemory = Math.min(minDpi.FreeMemory, dpi.FreeMemory);
         minDpi.AgentsNum = Math.min(minDpi.AgentsNum, dpi.AgentsNum);
 
@@ -274,6 +381,7 @@ public class demo extends AbstractCommand {
             String gpuId = e.getKey();
             DynamicPCInfo.GPU cur = e.getValue();
             if (cur == null) continue;
+
             DynamicPCInfo.GPU minGpu = minDpi.GPUs.get(gpuId);
             if (minGpu == null) {
                 minDpi.GPUs.put(gpuId, copyGpu(cur));
@@ -290,6 +398,7 @@ public class demo extends AbstractCommand {
             String iface = e.getKey();
             DynamicPCInfo.NetworkCard cur = e.getValue();
             if (cur == null) continue;
+
             DynamicPCInfo.NetworkCard minCard = minDpi.NetworkCards.get(iface);
             if (minCard == null) {
                 minDpi.NetworkCards.put(iface, copyNetCard(cur));
@@ -303,7 +412,7 @@ public class demo extends AbstractCommand {
     }
 
     // =========================================================
-    // 結果文字列組み立て（★historyセクション追加）
+    // 結果文字列組み立て
     // =========================================================
     private static String buildResultText(
             long startTime, long endTime, long elapsed,
@@ -357,15 +466,36 @@ public class demo extends AbstractCommand {
         }
         sb.append("\n");
 
-        // ★追加：全Agentのmigrate履歴
         sb.append("---- Agent Migration History (Master + Slave) ----\n");
         if (agentHistories.isEmpty()) {
             sb.append("(no agent history reported)\n");
-            sb.append("NOTE: Each agent (master/slave) should call demo.reportAgentHistory(agentId, historyText) on finish.\n");
+            sb.append("NOTE: Each agent (master/slave) should call demo.reportAgentHistory(agentId, agentName, historyText) on finish.\n");
         } else {
             for (Map.Entry<String, String> e : agentHistories.entrySet()) {
                 sb.append("[").append(e.getKey()).append("]\n");
                 sb.append(e.getValue()).append("\n\n");
+            }
+        }
+        sb.append("\n");
+
+        sb.append("---- Agent Class Characteristics (from DHT) ----\n");
+
+        Set<String> classNames = new java.util.LinkedHashSet<>();
+        for (String cls : masterIdToClass.values()) classNames.add(cls);
+
+        for (String key : agentHistories.keySet()) {
+            int idx = key.indexOf(" id=");
+            if (idx > 0) classNames.add(key.substring(0, idx));
+        }
+
+        if (classNames.isEmpty()) {
+            sb.append("(no agent classes found)\n");
+        } else {
+            for (String cn : classNames) {
+                AgentClassInfo info = DHTutil.getAgentInfo(cn);
+                sb.append("[").append(cn).append("]\n");
+                sb.append(info != null ? info.toString() : "(no AgentClassInfo in DHT)\n");
+                sb.append("\n");
             }
         }
         sb.append("\n");

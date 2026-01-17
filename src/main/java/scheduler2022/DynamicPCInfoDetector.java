@@ -99,7 +99,7 @@ public class DynamicPCInfoDetector {
         // ログと AgentInfo 更新はここでまとめて行う
         //result.print();
         result.updateAgentInfo(id);
-        result.print();
+        //result.print();
     }
 
     /**

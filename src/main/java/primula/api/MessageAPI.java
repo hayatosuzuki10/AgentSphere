@@ -36,6 +36,7 @@ public class MessageAPI {
 
     public synchronized static void registerMessageListener(IMessageListener listener) throws IllegalArgumentException{
         messageServer.registerMessageListener(listener);
+        System.out.println(listener.getClass().getName() + "@messageAPI");
     }
 
     public synchronized static void removeMessageListener(IMessageListener listener) {

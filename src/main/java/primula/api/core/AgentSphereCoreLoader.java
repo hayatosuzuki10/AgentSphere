@@ -84,7 +84,9 @@ public class AgentSphereCoreLoader {
 			//MakeResultJson.output_AgentWeb(agent.getClass() + "が読み込まれました。");
 			//System.err.println(agent.getClass() + "が読み込まれました。");
 		}
-
+	 
+	
+	       
 		Scheduler sch = new Scheduler();
 		Thread th = new Thread(sch);
 		th.setName("AgentSchedule2022");

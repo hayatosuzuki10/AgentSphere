@@ -232,6 +232,10 @@ public class Scheduler implements Runnable {
 	    javax.swing.SwingUtilities.invokeLater(() ->
 	    	ConsolePanel.setPanelTitle("LA=" + la + " AgentNum=" + dpi.AgentsNum));
 	    infoUpdateListeners.parallelStream().forEach(l -> l.pcInfoUpdate(dpi));
+	    StaticPCInfo spi = DHTutil.getStaticPCInfo(IPAddress.myIPAddress);
+	    if(spi == null || spi.CPU == null || spi.CPU.BenchMarkScore == 0) {
+	    	setStaticPCInfo();
+	    }
 	}
 	private void updateMyAgentInfos(){
 

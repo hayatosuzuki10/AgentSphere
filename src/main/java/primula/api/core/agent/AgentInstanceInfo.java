@@ -63,6 +63,7 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        cpuChangeRecords.put(time, cpuChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setCpuChange(cpuChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	        
@@ -77,6 +78,8 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        gpuChangeRecords.put(time, gpuChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setGpuChange(gpuChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
@@ -90,6 +93,8 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        memoryChangeRecords.put(time, memoryChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setMemoryChange(memoryChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
@@ -103,6 +108,8 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        networkUpChangeRecords.put(time, networkUpChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setNetworkUpChange(networkUpChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
@@ -118,6 +125,8 @@ public class AgentInstanceInfo implements Serializable{
 	        
 	        networkDownChangeRecords.put(time, networkDownChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setNetworkDownChange(networkDownChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
@@ -131,6 +140,8 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        heapChangeRecords.put(time, heapChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setHeapChange(heapChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
@@ -145,6 +156,8 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        realMemoryChangeRecords.put(time, realMemoryChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setRealMemoryChange(realMemoryChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
@@ -159,6 +172,8 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        gcCountChangeRecords.put(time, gcCountChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+
+	        if (info == null) return;   // ★busy時はスキップ
 	        info.setGCCountChange(gcCountChange);
 	        DHTutil.setAgentInfo(this.name, info);
 	    }

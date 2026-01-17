@@ -51,7 +51,6 @@ public class AgentManager implements IAgentManager {
                 KeyValuePair<String, AbstractAgent> val = readyRunAgentPool.poll();
                 AgentThread agentThread = new AgentThread(val.getValue()); // 指定のエージェントを起動
                 agentThread.setName(val.getValue().getClass().getName()+"-"+agentThread.getName()); // エージェント名(クラス名)-スレッド名
-                agentThread.setPriority(Thread.MIN_PRIORITY); 
                 runningAgentPool.addAndRunAgent(agentThread, val.getKey());
             }
         });
@@ -86,7 +85,7 @@ public class AgentManager implements IAgentManager {
 
     @Override
     public synchronized void migrate(KeyValuePair<InetAddress, Integer> address, AbstractAgent agent) {
-        
+
         AgentPack agentPack = new AgentPack(
             SystemAPI.getAgentSphereId(),
             Integer.parseInt(SystemAPI.getConfigData("DefaultPort").toString()),
