@@ -37,6 +37,7 @@ public abstract class AbstractAgent extends SystemResource
 	public double priority = 0.5;
 	public int migrateCount = 0;
 	
+	
     public AgentInstanceInfo getAgentInfo() {
     	return info;
     }
@@ -44,9 +45,11 @@ public abstract class AbstractAgent extends SystemResource
     public static class history implements Serializable{
 		String ip;
 		long time;
-		history(String ip,long time){
+		String reason;
+		history(String ip,long time, String reason){
 			this.ip = ip;
 			this.time = time;
+			this.reason = reason;
 		}
 
 	}
@@ -54,12 +57,12 @@ public abstract class AbstractAgent extends SystemResource
 	private List<history> history = new ArrayList<history> ();
 	
 //    goto
-    public void RegistarHistory(String ip) {
+    public void RegistarHistory(String ip, String reason) {
 		long time = System.currentTimeMillis() - info.getStartTime();
 		for(int i=0;i<this.history.size();i++) {
 			time -= this.history.get(i).time;
 		}
-		this.history.add(new history(ip,time));
+		this.history.add(new history(ip,time, reason));
 	}
 	public long getHistoryTime(int num) {
 //		his.push(new);
@@ -163,6 +166,7 @@ public abstract class AbstractAgent extends SystemResource
 	    }
 
 		info.setStartTime(System.currentTimeMillis());
+		RegistarHistory(IPAddress.myIPAddress, "initial");
 	}
 	
 
@@ -264,12 +268,10 @@ public abstract class AbstractAgent extends SystemResource
 
 			primula.agent.util.DHTutil.setMigratingAgentIP(agentID);
 
-			RegistarHistory(IPAddress.myIPAddress);
 			AgentAPI.migration(address, this);
 			return;
 		}
 
-		RegistarHistory(IPAddress.myIPAddress);
 	}
 
 
@@ -615,24 +617,25 @@ public abstract class AbstractAgent extends SystemResource
 	    for (int i = 0; i < hops; i++) {
 	        String ip = "(unknown)";
 	        long stay = -1L;
+	        String reason = "(unknown)";
 
 	        try { ip = getHistoryIP(i); } catch (Throwable ignore) {}
 	        try { stay = getHistoryTime(i); } catch (Throwable ignore) {}
+	        try { reason = this.history.get(i).reason; } catch (Throwable ignore) {}
 
 	        if (stay >= 0) cumulative += stay;
 
 	        sb.append(i).append(") ip=").append(ip)
 	          .append(" stayMs=").append(stay)
 	          .append(" cumulativeMs=").append(cumulative)
+	          .append(" reason=").append(reason)
 	          .append("\n");
 	    }
 
-	    // 今いるIP（Primulaの実体IP）
 	    try {
 	        sb.append("currentIp=").append(IPAddress.myIPAddress).append("\n");
 	    } catch (Throwable ignore) {}
 
-	    // 起動からの経過時間も参考として載せる（historyの合計とズレることがある）
 	    try {
 	        long uptime = System.currentTimeMillis() - getAgentInfo().getStartTime();
 	        sb.append("currentUptimeMs=").append(uptime).append("\n");

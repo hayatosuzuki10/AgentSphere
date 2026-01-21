@@ -18,22 +18,29 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     private static final Object PREDICTION_LOCK = new Object();
 
     /* ===== 安定化用パラメータ ===== */
-    private static final long PCINFO_TTL_MS = 5_000;      // 情報の鮮度
     private static final long IP_CACHE_TTL_MS = 5_000;
-    private static final long BLACKLIST_MS = 10_000;
     
     private static double cpuWeight = 4;
-    private static double gpuWeight = 3;
+    private static double gpuWeight = 4;
     private static double memWeight = 2;
     private static double netWeight = 1;
-    private static double laWeight = 3;
-    private static double conWeight = 3;
+    private static double laWeight = 4;
+    private static double conWeight = 5;
     private static double migTimeWeight = 3;
-    private static double migSpeedWeight = 3;
-    private static double migCountWeight = 3;
+    private static double migSpeedWeight = 1;
+    private static double migCountWeight = 5;
     
     
-   
+    private class ScoreResult {
+    	String ip;
+    	double score;
+    	String reason;
+    	
+    	public ScoreResult(String ip, double score, String reason) {
+    		this.score = score;
+    		this.reason = reason;
+    	}
+    }
     
 
     private Set<String> cachedIPs = new HashSet<>();
@@ -50,10 +57,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
         synchronized (PREDICTION_LOCK) {
 
             String selfIP = IPAddress.myIPAddress;
-            String bestIP = selfIP;
-            String notBadIP = selfIP;
-            double bestScore = Double.NEGATIVE_INFINITY;
-            double notBadScore = Double.NEGATIVE_INFINITY;
+            ScoreResult bestResult = new ScoreResult(selfIP, Double.NEGATIVE_INFINITY, "negative");
+            ScoreResult notBadResult = new ScoreResult(selfIP, Double.NEGATIVE_INFINITY, "negative");
 
             DynamicPCInfo myDyn = InformationCenter.getMyDPI();
             StaticPCInfo mySta = InformationCenter.getMySPI();
@@ -62,7 +67,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 return selfIP;
             }
 
-            double myScore = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress);
+            ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress);
 
             for (String ip : getAliveIPs()) {
                 if (ip.equals(selfIP)) continue;
@@ -72,16 +77,14 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                     StaticPCInfo sta = InformationCenter.getMySPI();
 
                     if (hasMeetDemand(agent, dyn, sta)) {
-                    	double score = calculateMatchScore(agent, dyn, sta, ip);
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestIP = ip;
+                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                        if (result.score > bestResult.score) {
+                            bestResult = result;
                         }
                     }else {
-                    	double score = calculateMatchScore(agent, dyn, sta, ip);
-                        if (score > notBadScore) {
-                            notBadScore = score;
-                            notBadIP = ip;
+                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                        if (result.score > notBadResult.score) {
+                            notBadResult = result;
                         }
                     }
 
@@ -91,13 +94,14 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                     System.out.println("[SCORE-SKIP] " + ip + " " + e.getClass().getSimpleName());
                 }
             }
-
-            if (bestScore > myScore + Scheduler.scoreThreshold) {
-                setTemporaryPrediction(agent, bestIP);
-                return bestIP;
-            } else if(notBadScore > myScore + Scheduler.scoreThreshold){
-            	setTemporaryPrediction(agent, notBadIP);
-            	return notBadIP;
+            if (bestResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
+                setTemporaryPrediction(agent, bestResult.ip);
+                agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
+                return bestResult.ip;
+            } else if(notBadResult.score > myScoreResult.score + Scheduler.scoreThreshold){
+            	setTemporaryPrediction(agent, notBadResult.ip);
+            	agent.RegistarHistory(notBadResult.ip, myScoreResult.reason + notBadResult.reason);
+            	return notBadResult.ip;
             }
 
             return selfIP;
@@ -446,68 +450,73 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
  
     
-    private double calculateMatchScore(
-    		AbstractAgent agent,
+    private ScoreResult calculateMatchScore(
+            AbstractAgent agent,
             DynamicPCInfo dyn,
             StaticPCInfo sta,
             String ip) {
 
-    	AgentClassInfo info = scheduler2022.util.DHTutil.getAgentInfo(agent.getAgentName());
-    	if (info == null || dyn == null || sta == null) return 0.0;
+        AgentClassInfo info = scheduler2022.util.DHTutil.getAgentInfo(agent.getAgentName());
+        if (info == null || dyn == null || sta == null)
+            return new ScoreResult(ip, Double.NEGATIVE_INFINITY, "info/dyn/sta null for IP=" + ip);
 
+        // ---- 各スコア計算 ----
+        double cpuScore = scoreCPU(info, dyn, sta);
+        double gpuScore = scoreGPU(info, dyn, sta);
+        double memScore = scoreMemory(info, dyn, sta);
+        double netScore = scoreNetworkTotal(info, dyn, sta);
 
-    	double cpuScore = scoreCPU(info, dyn, sta);
+        int cores = Math.max(1, sta.CPU.LogicalCore);
+        double laNorm = clamp01(dyn.LoadAverage / cores);
+        double laScore = clamp01(1.0 - laNorm);
 
-    	double gpuScore = scoreGPU(info, dyn, sta);
+        int agentNum = 0;
+        for (String ipAddress : cachedIPs) {
+            agentNum += InformationCenter.getOtherDPI(ipAddress).Agents.size();
+        }
 
-    	double memScore = scoreMemory(info, dyn, sta);
-    	
-    	double netScore = scoreNetworkTotal(info, dyn, sta);
-    	
-    	// 混雑ペナルティ（任意）
-    	double agentsPenalty = dyn.AgentsNum;
-    	
-    	// loadAverage は低いほど良い
-    	int cores = Math.max(1, sta.CPU.LogicalCore);
-    	double laNorm = clamp01(dyn.LoadAverage / cores);
-    	double laScore = clamp01(1.0 - laNorm);
-    	
-    	int agentNum = 0;
-    	double congestion = 0;
-    	for(String ipAddress: cachedIPs) {
-    		agentNum += InformationCenter.getOtherDPI(ipAddress).Agents.size();
-    	}
-    	int myAgentNum = InformationCenter.getOtherDPI(ip).Agents.size();
-    	if(agentNum == 0 || myAgentNum == 0) {
-    		congestion = 0;
-    	} else {
-    		congestion = clamp01(myAgentNum / agentNum);
-    	}
+        int myAgentNum = InformationCenter.getOtherDPI(ip).Agents.size();
+        double congestion = (agentNum == 0 || myAgentNum == 0)
+                ? 0
+                : clamp01((double) myAgentNum / (double) agentNum);
 
-    	DynamicPCInfo myDPI = InformationCenter.getMyDPI();
-    	double networkSpeedNorm = 0;
-    	if(myDPI.NetworkSpeeds != null && myDPI.NetworkSpeeds.get(ip) != null) {
-    		networkSpeedNorm = clamp01(myDPI.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900);
-    	}
-    	double slowPenalty = 1.0 - networkSpeedNorm; // 遅いほど 1
-    	double migrateTimeNorm = clamp01(info.getMigrateTime() / 10_000_000L);
-    	double migratePenalty = clamp01(agent.migrateCount / 10);
-    	
-    	double score = (cpuScore * cpuWeight)
-    			+ (gpuScore * gpuWeight)
-    			+ (memScore * memWeight)
-    			+ (netScore * netWeight)
-    			+ laScore * laWeight
-    			- congestion * conWeight
-    			- migrateTimeNorm * migTimeWeight
-    			- slowPenalty * migSpeedWeight
-    			- migratePenalty * migCountWeight;
-    	
-    	
-    	
+        DynamicPCInfo myDPI = InformationCenter.getMyDPI();
+        double networkSpeedNorm = 0;
+        if (myDPI.NetworkSpeeds != null && myDPI.NetworkSpeeds.get(ip) != null) {
+            networkSpeedNorm = clamp01(myDPI.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900);
+        }
 
-    	// 重み：必要なら調整
-    	return score;
+        double slowPenalty = 1.0 - networkSpeedNorm;
+        double migrateTimeNorm = clamp01(info.getMigrateTime() / 10_000_000L);
+        double migratePenalty = clamp01(agent.migrateCount / 10.0);
+
+        // ---- スコア合算 ----
+        double score =
+                (cpuScore * cpuWeight)
+                + (gpuScore * gpuWeight)
+                + (memScore * memWeight)
+                + (netScore * netWeight)
+                + (laScore * laWeight)
+                - (congestion * conWeight)
+                - (migrateTimeNorm * migTimeWeight)
+                - (slowPenalty * migSpeedWeight)
+                - (migratePenalty * migCountWeight);
+
+        // ---- reason ログ（IP付き）----
+        StringBuilder reason = new StringBuilder();
+        reason.append("[Score] IP=").append(ip).append(" -> ")
+              .append("CPU=").append(cpuScore).append("*").append(cpuWeight).append(", ")
+              .append("GPU=").append(gpuScore).append("*").append(gpuWeight).append(", ")
+              .append("MEM=").append(memScore).append("*").append(memWeight).append(", ")
+              .append("NET=").append(netScore).append("*").append(netWeight).append(", ")
+              .append("LA=").append(laScore).append("*").append(laWeight).append(", ")
+              .append("congestion=").append(congestion).append("*").append(conWeight).append(", ")
+              .append("slowPen=").append(slowPenalty).append("*").append(migSpeedWeight).append(", ")
+              .append("migTime=").append(migrateTimeNorm).append("*").append(migTimeWeight).append(", ")
+              .append("migCount=").append(migratePenalty).append("*").append(migCountWeight)
+              .append(" => total=").append(score);
+
+        return new ScoreResult(ip, score, reason.toString());
     }
 
     /* -------------------------
@@ -519,8 +528,6 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
     	int bench = Math.max(1, sta.CPU.BenchMarkScore);	
     	double usedPerf = dyn.CPU.LoadPercentByMXBean * bench;
-    	double needPerf = Math.max(0, info.getCpuChange());
-    	double afterPerf = usedPerf + needPerf;
 
     	double headroom = (bench - usedPerf) / bench; // 0..1
     	return headroom;
@@ -530,7 +537,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
      * GPU: 複数GPUなら「一番余裕が残るGPU」を採用
      * ------------------------- */
     private double scoreGPU(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
-    	final double FAIL_PENALTY = 1e6;
+    	
 
     	int need = Math.max(0, info.getGpuChange());
     	if (need <= 0) return 0.0;
@@ -576,7 +583,6 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 		
 		if (need + used > total) return 0;
 		
-		long afterAvail = total - used - need;
 		double headroom = (double) (total - used) / (double) total;
 		return headroom;
 	}
