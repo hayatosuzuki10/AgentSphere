@@ -16,6 +16,7 @@ import oshi.hardware.GlobalMemory;
 import oshi.hardware.GraphicsCard;
 import oshi.hardware.HardwareAbstractionLayer;
 import oshi.hardware.NetworkIF;
+import scheduler2022.JudgeOS;
 import scheduler2022.StaticPCInfo;
 
 public class StaticPCInfoCollector implements Serializable {
@@ -39,7 +40,6 @@ public class StaticPCInfoCollector implements Serializable {
     }
 
     public StaticPCInfo collect() {
-
         // CPU
         StaticPCInfo.CPU cpu = null;
         try {
@@ -73,7 +73,10 @@ public class StaticPCInfoCollector implements Serializable {
             }
         } catch (Exception ignored) {}
 
-        return new StaticPCInfo(cpu, total, nics, gpus);
+        boolean hasSSD = detectSSD();  // OSごとにSSDか判定する
+     // どこかに保存するなら：dpi.hasSSD = hasSSD;
+
+        return new StaticPCInfo(cpu, total, hasSSD, nics, gpus);
     }
 
     /* ---------- readers (OSHI → DTO) ---------- */
@@ -144,5 +147,63 @@ public class StaticPCInfoCollector implements Serializable {
                    .ifPresent(e -> g.BenchMarkScore = e.getValue());
             });
         } catch (IOException ignored) {}
+    }
+    
+    private boolean detectSSD() {
+        try {
+            if (JudgeOS.isWindows()) {
+                return isSSDOnWindows();
+            } else if (JudgeOS.isLinux()) {
+                return isSSDOnLinux();
+            } else if (JudgeOS.isMac()) {
+                return isSSDOnMac();
+            }
+        } catch (Exception e) {
+            System.err.println("[WARN] detectSSD failed: " + e.getMessage());
+        }
+        return false; // デフォルトで HDD 扱い
+    }
+    
+    private boolean isSSDOnWindows() throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(
+            "powershell",
+            "-Command",
+            "Get-PhysicalDisk | Select-Object MediaType"
+        );
+        Process process = pb.start();
+
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(process.getInputStream()))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.toLowerCase().contains("nvme")) {
+                    return true;
+                }
+                if (line.toLowerCase().contains("ssd")) {
+                    return true;
+                }
+            }
+        }
+        process.waitFor();
+        return false;
+    }
+    
+    private boolean isSSDOnLinux() throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(
+            "bash", "-c", "lsblk -d -o ROTA | grep -q '^0'"
+        );
+        Process process = pb.start();
+        int exitCode = process.waitFor();
+        return exitCode == 0; // ROTA=0 があれば SSD
+    }
+    
+    private boolean isSSDOnMac() throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(
+            "bash", "-c", "diskutil info disk0 | grep 'Solid State: Yes'"
+        );
+        Process process = pb.start();
+        int exitCode = process.waitFor();
+        return exitCode == 0;
     }
 }

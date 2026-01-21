@@ -17,4 +17,12 @@ public class JudgeOS {
 		return OSname().contains("Windows");
 	}
 	
+	public static boolean isLinux() {
+		return OSname().contains("Linux");
+	}
+	
+	public static boolean isMac() {
+		return OSname().contains("Mac");
+	}
+	
 }

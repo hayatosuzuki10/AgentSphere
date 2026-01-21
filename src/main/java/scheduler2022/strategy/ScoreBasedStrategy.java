@@ -22,8 +22,9 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     
     private static double cpuWeight = 4;
     private static double gpuWeight = 4;
-    private static double memWeight = 2;
+    private static double memWeight = 3;
     private static double netWeight = 1;
+    private static double ioWeight = 2;
     private static double laWeight = 4;
     private static double conWeight = 5;
     private static double migTimeWeight = 3;
@@ -37,6 +38,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     	String reason;
     	
     	public ScoreResult(String ip, double score, String reason) {
+    		this.ip = ip;
     		this.score = score;
     		this.reason = reason;
     	}
@@ -73,8 +75,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 if (ip.equals(selfIP)) continue;
 
                 try {
-                    DynamicPCInfo dyn = InformationCenter.getMyDPI();
-                    StaticPCInfo sta = InformationCenter.getMySPI();
+                    DynamicPCInfo dyn = InformationCenter.getOtherDPI(ip);
+                    StaticPCInfo sta = InformationCenter.getOtherSPI(ip);
 
                     if (hasMeetDemand(agent, dyn, sta)) {
                     	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
@@ -490,17 +492,21 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
         double migrateTimeNorm = clamp01(info.getMigrateTime() / 10_000_000L);
         double migratePenalty = clamp01(agent.migrateCount / 10.0);
 
-        // ---- スコア合算 ----
+        double ioScore = scoreIO(dyn); // DPIに追加されたI/Oスループットからスコア化
+        double ioPenalty = sta.hasSSD ? 0.0 : 0.5; // SSD未搭載ならペナルティ
+
         double score =
                 (cpuScore * cpuWeight)
                 + (gpuScore * gpuWeight)
                 + (memScore * memWeight)
                 + (netScore * netWeight)
                 + (laScore * laWeight)
+                + (ioScore * ioWeight) // IOスコアの重み（適宜調整）
                 - (congestion * conWeight)
                 - (migrateTimeNorm * migTimeWeight)
                 - (slowPenalty * migSpeedWeight)
-                - (migratePenalty * migCountWeight);
+                - (migratePenalty * migCountWeight)
+                - (ioPenalty); // SSDでないなら固定ペナルティ
 
         // ---- reason ログ（IP付き）----
         StringBuilder reason = new StringBuilder();
@@ -509,12 +515,15 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
               .append("GPU=").append(gpuScore).append("*").append(gpuWeight).append(", ")
               .append("MEM=").append(memScore).append("*").append(memWeight).append(", ")
               .append("NET=").append(netScore).append("*").append(netWeight).append(", ")
+              .append(", IO=").append(ioScore).append("*2.0")
+              .append(", hasSSD=").append(sta.hasSSD ? "✔" : "✘")
               .append("LA=").append(laScore).append("*").append(laWeight).append(", ")
               .append("congestion=").append(congestion).append("*").append(conWeight).append(", ")
               .append("slowPen=").append(slowPenalty).append("*").append(migSpeedWeight).append(", ")
               .append("migTime=").append(migrateTimeNorm).append("*").append(migTimeWeight).append(", ")
               .append("migCount=").append(migratePenalty).append("*").append(migCountWeight)
               .append(" => total=").append(score);
+       
 
         return new ScoreResult(ip, score, reason.toString());
     }
@@ -627,6 +636,15 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
 	    // 上り・下りの平均未使用率
 	    return clamp01((upFreeRate + downFreeRate) / 2.0);
+	}
+	
+	private double scoreIO(DynamicPCInfo dyn) {
+	    if (dyn == null || dyn.diskIO == null) return 0.0;
+	    
+	    double readNorm  = clamp01(dyn.diskIO.ReadSpeed  / 100_000_000.0);  // 100MB/s基準
+	    double writeNorm = clamp01(dyn.diskIO.WriteSpeed / 100_000_000.0);
+
+	    return (readNorm + writeNorm) / 2.0;  // 平均 I/O スコア
 	}
 
 

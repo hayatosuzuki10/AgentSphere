@@ -35,6 +35,8 @@ public class AgentInstanceInfo implements Serializable{
 	    // ★ 追加：メモリ負荷の内訳
 	    private long heapChange = 0;         // ヒープ差分(bytes)
 	    private int gcCountChange = 0;      // GC 回数差分
+	    private long diskReadChange = 0;
+	    private long diskWriteChange = 0;
 	    
 	    private double priority = 0.5;
 	    private double progress;
@@ -48,6 +50,8 @@ public class AgentInstanceInfo implements Serializable{
 		private Map<Long, Long> networkDownChangeRecords = new HashMap<>();
 		private Map<Long, Long> heapChangeRecords = new HashMap<>();
 	    private Map<Long, Integer> gcCountChangeRecords = new HashMap<>();
+		private Map<Long, Long> diskReadChangeRecords = new HashMap<>();
+		private Map<Long, Long> diskWriteChangeRecords = new HashMap<>();
 	    
 		
 	    @JsonIgnore
@@ -145,6 +149,33 @@ public class AgentInstanceInfo implements Serializable{
 	        if (info == null) return;   // ★busy時はスキップ
 	        info.setGCCountChange(gcCountChange);
 	        DHTutil.setAgentInfo(this.name, info);
+	    }
+	    
+	    @JsonIgnore
+	    public void recordDiskIOChange(long read, long write, long time) {
+	        // ---- Read ----
+	        if (diskReadChangeRecords.isEmpty()) {
+	            this.diskReadChange = read;
+	        } else {
+	            this.diskReadChange = ema(this.diskReadChange, read, Scheduler.getEmaAlpha());
+	        }
+	        diskReadChangeRecords.put(time, read);
+
+	        // ---- Write ----
+	        if (diskWriteChangeRecords.isEmpty()) {
+	            this.diskWriteChange = write;
+	        } else {
+	            this.diskWriteChange = ema(this.diskWriteChange, write, Scheduler.getEmaAlpha());
+	        }
+	        diskWriteChangeRecords.put(time, write);
+
+	        // ---- DHT更新 ----
+	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        if (info != null) {
+	            info.setDiskReadChange(read);
+	            info.setDiskWriteChange(write);
+	            DHTutil.setAgentInfo(this.name, info);
+	        }
 	    }
 		
 		@JsonIgnore

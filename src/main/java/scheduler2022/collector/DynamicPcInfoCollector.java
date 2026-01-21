@@ -92,6 +92,9 @@ prevNetworkCards = nics;
 // 9. NetworkSpeeds（IP 間）
 dpi.NetworkSpeeds = collectNetworkSpeeds(aliveIPs, receiverPort);
 
+//12. DiskIO
+dpi.diskIO = collectDiskIO(previousDpi);
+
 // 10. Agents
 dpi.Agents = collectAgents();
 dpi.AgentsNum = (dpi.Agents != null) ? dpi.Agents.size() : 0;
@@ -325,6 +328,41 @@ return dpi;
         }
 
         return speeds;
+    }
+    
+    private DynamicPCInfo.DiskIO collectDiskIO(DynamicPCInfo previous) {
+        DynamicPCInfo.DiskIO out = new DynamicPCInfo.DiskIO();
+
+        // 前回との差分を取るために時間を記録
+        long intervalMillis = 1000; // 測定間隔（調整可能）
+
+        long readBefore = 0, writeBefore = 0;
+        if (previous != null && previous.diskIO != null) {
+            readBefore = previous.diskIO.ReadBytes;
+            writeBefore = previous.diskIO.WriteBytes;
+        }
+
+        long totalRead = 0;
+        long totalWrite = 0;
+
+        try {
+            for (oshi.hardware.HWDiskStore disk : hal.getDiskStores()) {
+                totalRead += disk.getReadBytes();
+                totalWrite += disk.getWriteBytes();
+            }
+        } catch (Exception e) {
+            System.err.println("[WARN] Disk read failed: " + e.getMessage());
+        }
+
+        // Set absolute values
+        out.ReadBytes = totalRead;
+        out.WriteBytes = totalWrite;
+
+        // 差分で速度を計算（前回との差分）
+        out.ReadSpeed = (int) Math.max(0, totalRead - readBefore);   // bytes/interval
+        out.WriteSpeed = (int) Math.max(0, totalWrite - writeBefore);
+
+        return out;
     }
     
 

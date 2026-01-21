@@ -29,6 +29,7 @@ public class DynamicPCInfoDetector {
     private int gpuPerfThreshold = 2000;
     private int gpuMemThreshold = 1000;
     private double netThresholdMbps = 2000000;
+    private long diskThreshold = 1_000_000; // bytes/sec (例: 1MB/s)
     
 
     // 固定スペック情報（ベンチマークなど）
@@ -158,6 +159,10 @@ public class DynamicPCInfoDetector {
         private int gpuMemChange;
         private double netUpChangeMbps;
         private double netDownChangeMbps;
+        private boolean hasChangeDiskRead;
+        private boolean hasChangeDiskWrite;
+        private long diskReadChange;
+        private long diskWriteChange;
 
         public Result(String id, Queue<DynamicPCInfo> before, Queue<DynamicPCInfo> after, long timeStamp) {
 
@@ -233,6 +238,16 @@ public class DynamicPCInfoDetector {
                 this.hasChangeNetworkDown = this.netDownChangeMbps >= netThresholdMbps;
 
             }
+            
+            long beforeRead  = bef.diskRead / bef.count;
+            long afterRead   = aft.diskRead / aft.count;
+            this.diskReadChange = afterRead - beforeRead;
+            this.hasChangeDiskRead = this.diskReadChange >= diskThreshold;
+
+            long beforeWrite = bef.diskWrite / bef.count;
+            long afterWrite  = aft.diskWrite / aft.count;
+            this.diskWriteChange = afterWrite - beforeWrite;
+            this.hasChangeDiskWrite = this.diskWriteChange >= diskThreshold;
         }
 
         /**
@@ -240,7 +255,18 @@ public class DynamicPCInfoDetector {
          * 「変化あり」の場合だけ値を記録し、それ以外は 0 を記録する方針。
          */
         public void updateAgentInfo(String id) {
+        	
+        	
             AgentInstanceInfo info = Scheduler.agentInfo.get(id);
+
+            AgentClassInfo classInfo;
+            if(DHTutil.containsAgent(info.getAgentName())) {
+            	classInfo = DHTutil.getAgentInfo(info.getAgentName());
+            }else {
+            	classInfo = new AgentClassInfo(info.getAgentName());
+            }
+            DHTutil.setAgentInfo(info.getAgentName(), classInfo);
+            
             if (info == null) {
                 // Agent が既に死んでいる / DHT にいないケースの保険
                 return;
@@ -282,15 +308,14 @@ public class DynamicPCInfoDetector {
             } else {
                 info.recordNetworkDownChange(0L, timeStamp);
             }
+            
+            if (this.hasChangeDiskRead || this.hasChangeDiskWrite) {
+                info.recordDiskIOChange(diskReadChange, diskWriteChange, timeStamp);
+            } else {
+                info.recordDiskIOChange(0L, 0L, timeStamp);
+            }
 
             Scheduler.agentInfo.put(id, info);
-            AgentClassInfo classInfo;
-            if(DHTutil.containsAgent(info.getAgentName())) {
-            	classInfo = DHTutil.getAgentInfo(info.getAgentName());
-            }else {
-            	classInfo = new AgentClassInfo(info.getAgentName());
-            }
-            DHTutil.setAgentInfo(info.getAgentName(), classInfo);
             
         }
 
@@ -344,6 +369,18 @@ public class DynamicPCInfoDetector {
             System.out.printf("  Download Change: %.2f Mbps%n", netDownChangeMbps);
             System.out.printf("  Network Status: %s%n",
                     hasChangeNetworkUp ? "⚠️ High Change" : "Stable");
+            
+            System.out.println("\nDiskIO:");
+            System.out.printf("  Read  Change: %.2f MB/s (Threshold: %.2f MB/s) -> %s%n",
+                diskReadChange / 1024.0 / 1024.0,
+                diskThreshold / 1024.0 / 1024.0,
+                hasChangeDiskRead ? "⚠️ Significant" : "OK"
+            );
+            System.out.printf("  Write Change: %.2f MB/s (Threshold: %.2f MB/s) -> %s%n",
+                diskWriteChange / 1024.0 / 1024.0,
+                diskThreshold / 1024.0 / 1024.0,
+                hasChangeDiskWrite ? "⚠️ Significant" : "OK"
+            );
 
             System.out.println("========================================\n");
         }
@@ -364,6 +401,9 @@ public class DynamicPCInfoDetector {
         int networkCardCount;
         double netUp;
         double netDown;
+
+        long diskRead;   // ★追加
+        long diskWrite;  // ★追加
     }
 
     /**
@@ -403,6 +443,8 @@ public class DynamicPCInfoDetector {
                 agg.netUp += nic.UploadSpeed;
                 agg.netDown += nic.DownloadSpeed;
             }
+            agg.diskRead  += dpi.diskIO.ReadSpeed;
+            agg.diskWrite += dpi.diskIO.WriteSpeed;
         }
 
         return agg;

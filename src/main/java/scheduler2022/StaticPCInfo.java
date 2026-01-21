@@ -8,16 +8,18 @@ public class StaticPCInfo implements Serializable {
 
     public CPU CPU = new CPU();
     public long TotalMemory;
+    public boolean hasSSD;
     public Map<String, NetworkCard> NetworkCards;
     public Map<String, GPU> GPUs;
 
     public StaticPCInfo() {}
 
-    public StaticPCInfo(CPU CPU, long TotalMemory,
+    public StaticPCInfo(CPU CPU, long TotalMemory, boolean hasSSD,
                         Map<String, NetworkCard> NetworkCards,
                         Map<String, GPU> GPUs) {
         this.CPU = CPU;
         this.TotalMemory = TotalMemory;
+        this.hasSSD = hasSSD;
         this.NetworkCards = NetworkCards;
         this.GPUs = GPUs;
     }
@@ -44,6 +46,7 @@ public class StaticPCInfo implements Serializable {
 
         // --- TotalMemory ---
         copy.TotalMemory = this.TotalMemory;
+        copy.hasSSD = this.hasSSD;
 
         // --- NetworkCards ---
         if (this.NetworkCards != null) {
@@ -89,6 +92,7 @@ public class StaticPCInfo implements Serializable {
     public String toString() {
         return "StaticPCInfo{CPU=" + CPU +
                ", TotalMemory=" + TotalMemory +
+               ", hasSSD=" + hasSSD +
                ", NetworkCards=" + (NetworkCards != null ? NetworkCards.size() : 0) +
                ", GPUs=" + (GPUs != null ? GPUs.size() : 0) + "}";
     }

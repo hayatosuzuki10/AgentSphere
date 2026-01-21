@@ -27,11 +27,9 @@ public class NetworkSpeedReceiverThread extends Thread {
 //            e.printStackTrace();
 //        }
     	try (ServerSocket serverSocket = new ServerSocket(port+1)) {
-            System.out.println("[📥 NetworkReceiver] ポート " + port + " で待機中...");
 
             while (true) {
                 try (Socket client = serverSocket.accept()) {
-                    System.out.println("[📥 NetworkReceiver] 接続: " + client.getInetAddress());
 
                     // クライアント → サーバー（アップロード）受信
                     InputStream in = client.getInputStream();
@@ -48,8 +46,7 @@ public class NetworkSpeedReceiverThread extends Thread {
                     out.write(downloadData);
                     out.flush();
 
-                    System.out.println("[📥 NetworkReceiver] アップロード受信 → ダウンロード送信完了");
-                } catch (Exception e) {
+                    } catch (Exception e) {
                     System.err.println("[⚠️ NetworkReceiver] 通信エラー: " + e.getMessage());
                 }
             }

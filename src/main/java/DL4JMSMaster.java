@@ -40,6 +40,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.api.MessageAPI;
+import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.agent.loader.multiloader.ChainContainer;
 import primula.api.core.agent.loader.multiloader.GhostClassLoader;
 import primula.api.core.agent.loader.multiloader.StringSelector;
@@ -51,6 +52,7 @@ import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
+import scheduler2022.util.DHTutil;
 
 public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
@@ -95,7 +97,10 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
     public void run() {
         long totalStart = System.currentTimeMillis();
         System.out.println(getAgentID()+ "@masterAgent");
-
+        
+        AgentClassInfo info = new AgentClassInfo(getAgentName(), 1000, 4000, 0, 0, 0, 0, 1000 * 60 * 5);
+        DHTutil.setAgentInfo(getAgentName(), info);
+        
         try {
             MessageAPI.registerMessageListener(this);
         } catch (Exception e) {

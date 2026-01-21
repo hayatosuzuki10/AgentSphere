@@ -5,7 +5,6 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -50,6 +49,8 @@ public class DynamicPCInfo implements Serializable {
 	/** GPUデバイスの状態 */
 	public GPU mainGPU;
 	public Map<String,GPU> GPUs;
+	
+	public DiskIO diskIO;
 
 	/** 稼働中エージェント一覧 */
 	public Map<String,Agent> Agents;
@@ -70,6 +71,7 @@ public class DynamicPCInfo implements Serializable {
 			Map<String,NetworkSpeed> networkSpeeds,
 			long socketReadBytes,
 			long socketWriteBytes,
+			DiskIO diskIO,
 			Map<String,Agent> agents,
 			int agentsNum
 	) {
@@ -84,6 +86,7 @@ public class DynamicPCInfo implements Serializable {
 		this.socketReadBytes = socketReadBytes;
 		this.socketWriteBytes = socketWriteBytes;
 		this.GPUs = gpus;
+		this.diskIO = diskIO;
 		this.Agents = agents;
 		this.AgentsNum = agentsNum;
 		this.timeStanp = System.currentTimeMillis();
@@ -171,6 +174,15 @@ public class DynamicPCInfo implements Serializable {
 	            nsCopy.put(e.getKey(), d);
 	        }
 	    }
+	    
+	    DiskIO diskIOCopy = null;
+	    if (this.diskIO != null) {
+	        diskIOCopy = new DiskIO();
+	        diskIOCopy.ReadBytes  = this.diskIO.ReadBytes;
+	        diskIOCopy.WriteBytes = this.diskIO.WriteBytes;
+	        diskIOCopy.ReadSpeed  = this.diskIO.ReadSpeed;
+	        diskIOCopy.WriteSpeed = this.diskIO.WriteSpeed;
+	    }
 
 	    // ---- Agents ----
 	    Map<String, Agent> agentsCopy = new HashMap<>();
@@ -220,6 +232,7 @@ public class DynamicPCInfo implements Serializable {
 	        nsCopy,
 	        this.socketReadBytes,     // ★ 追加
 	        this.socketWriteBytes,    // ★ 追加
+	        diskIOCopy,
 	        agentsCopy,
 	        this.AgentsNum
 	    );
@@ -229,130 +242,8 @@ public class DynamicPCInfo implements Serializable {
 	    return out;
 	}
 
-	/* ===== 差分（既存ロジックは保持、Null安全を強化） ===== */
-	@JsonIgnore
-	public DynamicPCInfo subtract(DynamicPCInfo other) {
-		if (other == null) return this.deepCopy();
-		DynamicPCInfo out = new DynamicPCInfo();
 
-		out.LoadAverage = this.LoadAverage - safe(other.LoadAverage);
-		out.FreeMemory  = this.FreeMemory  - safe(other.FreeMemory);
-		out.AgentsNum   = this.AgentsNum   - safe(other.AgentsNum);
-		out.LoadedClass = this.LoadedClass - safe(other.LoadedClass);
 
-		out.CPU = new CPU();
-		if (this.CPU != null) {
-			out.CPU.ClockSpeed = this.CPU.ClockSpeed - safe(other.CPU == null ? null : other.CPU.ClockSpeed);
-			out.CPU.LoadPercentByMXBean = this.CPU.LoadPercentByMXBean - safe(other.CPU == null ? null : other.CPU.LoadPercentByMXBean);
-		//	out.CPU.LoadPercentByOSHI = this.CPU.LoadPercentByOSHI - safe(other.CPU == null ? null : other.CPU.LoadPercentByOSHI);
-			out.CPU.ProcessCpuLoad = this.CPU.ProcessCpuLoad - safe(other.CPU == null ? null : other.CPU.ProcessCpuLoad);
-			out.CPU.AvailableProcessors = this.CPU.AvailableProcessors; // 差分ではなく現値保持
-		}
-
-		out.Memory = new Memory();
-		if (this.Memory != null || other.Memory != null) {
-			out.Memory.HostTotalBytes     = safe(this.Memory == null ? null : this.Memory.HostTotalBytes)     - safe(other.Memory == null ? null : other.Memory.HostTotalBytes);
-			out.Memory.HostAvailableBytes = safe(this.Memory == null ? null : this.Memory.HostAvailableBytes) - safe(other.Memory == null ? null : other.Memory.HostAvailableBytes);
-			out.Memory.SwapTotalBytes     = safe(this.Memory == null ? null : this.Memory.SwapTotalBytes)     - safe(other.Memory == null ? null : other.Memory.SwapTotalBytes);
-			out.Memory.SwapUsedBytes      = safe(this.Memory == null ? null : this.Memory.SwapUsedBytes)      - safe(other.Memory == null ? null : other.Memory.SwapUsedBytes);
-			out.Memory.JvmHeapUsed        = safe(this.Memory == null ? null : this.Memory.JvmHeapUsed)        - safe(other.Memory == null ? null : other.Memory.JvmHeapUsed);
-			out.Memory.JvmHeapCommitted   = safe(this.Memory == null ? null : this.Memory.JvmHeapCommitted)   - safe(other.Memory == null ? null : other.Memory.JvmHeapCommitted);
-			out.Memory.JvmHeapMax         = safe(this.Memory == null ? null : this.Memory.JvmHeapMax)         - safe(other.Memory == null ? null : other.Memory.JvmHeapMax);
-			out.Memory.JvmNonHeapUsed     = safe(this.Memory == null ? null : this.Memory.JvmNonHeapUsed)     - safe(other.Memory == null ? null : other.Memory.JvmNonHeapUsed);
-			out.Memory.JvmNonHeapCommitted= safe(this.Memory == null ? null : this.Memory.JvmNonHeapCommitted)- safe(other.Memory == null ? null : other.Memory.JvmNonHeapCommitted);
-		}
-
-		// GPUs
-		out.GPUs = new HashMap<>();
-		Set<String> gpuKeys = unionKeys(this.GPUs, other.GPUs);
-		for (String k : gpuKeys) {
-			GPU a = val(this.GPUs, k);
-			GPU b = val(other.GPUs, k);
-			GPU g = new GPU();
-			g.Name = a != null ? a.Name : (b != null ? b.Name : k);
-			g.LoadPercent  = safe(a == null ? null : a.LoadPercent)  - safe(b == null ? null : b.LoadPercent);
-			g.UsedMemory   = safe(a == null ? null : a.UsedMemory)   - safe(b == null ? null : b.UsedMemory);
-			g.TotalMemory  = safe(a == null ? null : a.TotalMemory)  - safe(b == null ? null : b.TotalMemory);
-			g.TemperatureC = safe(a == null ? null : a.TemperatureC) - safe(b == null ? null : b.TemperatureC);
-			out.GPUs.put(g.Name, g);
-		}
-
-		// NetworkCards
-		out.NetworkCards = new HashMap<>();
-		Set<String> ncKeys = unionKeys(this.NetworkCards, other.NetworkCards);
-		for (String k : ncKeys) {
-			NetworkCard a = val(this.NetworkCards, k);
-			NetworkCard b = val(other.NetworkCards, k);
-			NetworkCard c = new NetworkCard();
-			c.SentByte     = safe(a == null ? null : a.SentByte)     - safe(b == null ? null : b.SentByte);
-			c.ReceivedByte = safe(a == null ? null : a.ReceivedByte) - safe(b == null ? null : b.ReceivedByte);
-			c.UploadSpeed  = safe(a == null ? null : a.UploadSpeed)  - safe(b == null ? null : b.UploadSpeed);
-			c.DownloadSpeed= safe(a == null ? null : a.DownloadSpeed)- safe(b == null ? null : b.DownloadSpeed);
-			out.NetworkCards.put(k, c);
-		}
-
-		// NetworkSpeeds
-		out.NetworkSpeeds = new HashMap<>();
-		Set<String> nsKeys = unionKeys(this.NetworkSpeeds, other.NetworkSpeeds);
-		for (String k : nsKeys) {
-			NetworkSpeed a = val(this.NetworkSpeeds, k);
-			NetworkSpeed b = val(other.NetworkSpeeds, k);
-			NetworkSpeed s = new NetworkSpeed();
-			s.Sender   = (a != null && a.Sender != null) ? a.Sender : (b != null ? b.Sender : null);
-			s.Receiver = (a != null && a.Receiver != null) ? a.Receiver : (b != null ? b.Receiver : null);
-			s.UploadSpeedByOriginal   = safe(a == null ? null : a.UploadSpeedByOriginal)   - safe(b == null ? null : b.UploadSpeedByOriginal);
-			s.DownloadSpeedByOriginal = safe(a == null ? null : a.DownloadSpeedByOriginal) - safe(b == null ? null : b.DownloadSpeedByOriginal);
-			s.UploadSpeedByIperf3     = safe(a == null ? null : a.UploadSpeedByIperf3)     - safe(b == null ? null : b.UploadSpeedByIperf3);
-			s.DownloadSpeedByIperf3   = safe(a == null ? null : a.DownloadSpeedByIperf3)   - safe(b == null ? null : b.DownloadSpeedByIperf3);
-			out.NetworkSpeeds.put(k, s);
-		}
-
-		// Agents
-		out.Agents = new HashMap<>();
-		Set<String> agentKeys = unionKeys(this.Agents, other.Agents);
-		for (String id : agentKeys) {
-			Agent a = val(this.Agents, id);
-			Agent b = val(other.Agents, id);
-			Agent ag = new Agent();
-			ag.ID   = (a != null && a.ID != null) ? a.ID : (b != null ? b.ID : id);
-			ag.Name = (a != null && a.Name != null) ? a.Name : (b != null ? b.Name : null);
-			ag.StartTime = safe(a == null ? null : a.StartTime) - safe(b == null ? null : b.StartTime);
-			out.Agents.put(ag.ID, ag);
-		}
-
-		// GC 差分は累積型なのでそのまま差分（必要ならそのままコピーでも可）
-		if (this.GCStats != null || other.GCStats != null) {
-			out.GCStats = new GC();
-			out.GCStats.Collectors = new HashMap<>();
-			Set<String> gck = unionKeys(this.GCStats == null ? null : this.GCStats.Collectors, other.GCStats == null ? null : other.GCStats.Collectors);
-			for (String k : gck) {
-				GC.GCStat a = (this.GCStats != null) ? this.GCStats.Collectors.get(k) : null;
-				GC.GCStat b = (other.GCStats != null) ? other.GCStats.Collectors.get(k) : null;
-				GC.GCStat d = new GC.GCStat();
-				d.Name = (a != null ? a.Name : (b != null ? b.Name : k));
-				d.CollectionCount = safe(a == null ? null : a.CollectionCount) - safe(b == null ? null : b.CollectionCount);
-				d.CollectionTimeMs = safe(a == null ? null : a.CollectionTimeMs) - safe(b == null ? null : b.CollectionTimeMs);
-				out.GCStats.Collectors.put(d.Name, d);
-			}
-		}
-
-		return out;
-	}
-
-	/* ===== ユーティリティ ===== */
-	private static Set<String> unionKeys(Map<?,?> a, Map<?,?> b) {
-		java.util.HashSet<String> s = new java.util.HashSet<>();
-		if (a != null) for (Object k : a.keySet()) s.add(String.valueOf(k));
-		if (b != null) for (Object k : b.keySet()) s.add(String.valueOf(k));
-		return s;
-	}
-	private static <T> T val(Map<String,T> m, String k) { return (m == null) ? null : m.get(k); }
-	private static long safe(Long v)    { return v == null ? 0L : v; }
-	private static int safe(Integer v)  { return v == null ? 0  : v; }
-	private static double safe(Double v){ return v == null ? 0.0 : v; }
-	private static long safe(long v)    { return v; }
-	private static int safe(int v)      { return v; }
-	private static double safe(double v){ return v; }
 
 	@Override
 	public String toString() {
@@ -405,6 +296,13 @@ public class DynamicPCInfo implements Serializable {
 				   .append(entry.getValue().DownloadSpeedByIperf3).append(",");
 			}
 		}
+		if (this.diskIO != null) {
+		    str.append(this.diskIO.ReadBytes).append(",")
+		       .append(this.diskIO.WriteBytes).append(",")
+		       .append(this.diskIO.ReadSpeed).append(",")
+		       .append(this.diskIO.WriteSpeed).append(",");
+		}
+		
 		if (this.Agents != null) {
 			for(Map.Entry<String, Agent> entry : this.Agents.entrySet()) {
 				str.append(entry.getValue().ID).append(",")
@@ -542,6 +440,12 @@ public class DynamicPCInfo implements Serializable {
 
 	        return g;
 	    }
+	}
+	public static class DiskIO implements Serializable {
+	    public long ReadBytes;
+	    public long WriteBytes;
+	    public long ReadSpeed;
+	    public long WriteSpeed;
 	}
 
 }

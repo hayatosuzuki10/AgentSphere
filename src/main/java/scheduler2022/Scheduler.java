@@ -49,7 +49,7 @@ public class Scheduler implements Runnable {
 	public static DynamicPCInfo dpiBeforeChange;
 	public static DynamicPCInfo previousDPIBeforeChange;
 	private static double emaAlpha = 0.1;
-	public static double scoreThreshold = 3;
+	public static double scoreThreshold = 2;
 	public static boolean isServer = false;
 	private static Set<String> allIPAddresses = new HashSet<String>();
 	private static long timeStaticPCInfoChanged = 0;
