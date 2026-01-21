@@ -106,7 +106,7 @@ public class StaticPCInfo implements Serializable {
         public String MicroArch;
         public int PhysicalCore;
         public int LogicalCore;
-        public int BenchMarkScore;
+        public int BenchMarkScore = 0;
         @Override public String toString() {
             return "CPU{Name='" + Name + "', Vendor='" + Vendor +
                    "', MicroArch='" + MicroArch + "', PhysicalCore=" + PhysicalCore +

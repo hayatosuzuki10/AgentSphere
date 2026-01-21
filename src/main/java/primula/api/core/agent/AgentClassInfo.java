@@ -23,7 +23,7 @@ public class AgentClassInfo implements Serializable {
     private long diskReadChange = 0;
     private long diskWriteChange = 0;
 
-    private double migrateTime = 0;
+    private long migrateTime = 0;
 
     // ===============================
     // Records
@@ -36,7 +36,7 @@ public class AgentClassInfo implements Serializable {
     private final Map<Long, Integer> gcCountChangeRecords = new HashMap<>();
     private final Map<Long, Long> diskReadChangeRecords = new HashMap<>();
     private final Map<Long, Long> diskWriteChangeRecords = new HashMap<>();
-    private final Map<Long, Double> migrateTimeRecords = new HashMap<>();
+    private final Map<Long, Long> migrateTimeRecords = new HashMap<>();
 
     // ===============================
     // Constructor
@@ -54,6 +54,8 @@ public class AgentClassInfo implements Serializable {
             long networkDownChange,
             long heapChange,
             int gcChange,
+            long diskReadChange, 
+            long diskWriteChange,
             long migrateTime
     ) {
         this.name = agentName;
@@ -63,9 +65,58 @@ public class AgentClassInfo implements Serializable {
         this.networkDownChange = networkDownChange;
         this.heapChange = heapChange;
         this.gcCountChange = gcChange;
+        this.diskReadChange = diskReadChange;
+        this.diskWriteChange = diskWriteChange;
         this.migrateTime = migrateTime;
     }
 
+    @JsonIgnore
+    public AgentClassInfo deepCopy() {
+        AgentClassInfo copy = new AgentClassInfo(this.name);
+
+        // ==== primitive / immutable fields ====
+        copy.cpuChange = this.cpuChange;
+        copy.gpuChange = this.gpuChange;
+        copy.networkUpChange = this.networkUpChange;
+        copy.networkDownChange = this.networkDownChange;
+        copy.heapChange = this.heapChange;
+        copy.gcCountChange = this.gcCountChange;
+        copy.diskReadChange = this.diskReadChange;
+        copy.diskWriteChange = this.diskWriteChange;
+        copy.migrateTime = this.migrateTime;
+
+        // ==== deep copy maps ====
+        synchronized (this.cpuChangeRecords) {
+            copy.cpuChangeRecords.putAll(this.cpuChangeRecords);
+        }
+        synchronized (this.gpuChangeRecords) {
+            copy.gpuChangeRecords.putAll(this.gpuChangeRecords);
+        }
+        synchronized (this.networkUpChangeRecords) {
+            copy.networkUpChangeRecords.putAll(this.networkUpChangeRecords);
+        }
+        synchronized (this.networkDownChangeRecords) {
+            copy.networkDownChangeRecords.putAll(this.networkDownChangeRecords);
+        }
+        synchronized (this.heapChangeRecords) {
+            copy.heapChangeRecords.putAll(this.heapChangeRecords);
+        }
+        synchronized (this.gcCountChangeRecords) {
+            copy.gcCountChangeRecords.putAll(this.gcCountChangeRecords);
+        }
+        synchronized (this.diskReadChangeRecords) {
+            copy.diskReadChangeRecords.putAll(this.diskReadChangeRecords);
+        }
+        synchronized (this.diskWriteChangeRecords) {
+            copy.diskWriteChangeRecords.putAll(this.diskWriteChangeRecords);
+        }
+        synchronized (this.migrateTimeRecords) {
+            copy.migrateTimeRecords.putAll(this.migrateTimeRecords);
+        }
+
+        return copy;
+    }
+    
     // ===============================
     // Getters / Setters（全て record*** 経由）
     // ===============================
@@ -108,7 +159,7 @@ public class AgentClassInfo implements Serializable {
 
     public double getMigrateTime() { return migrateTime; }
 
-    public void setMigrateTime(double val) { recordMigrateTime(val, now()); }
+    public void setMigrateTime(long val) { recordMigrateTime(val, now()); }
 
     private static long now() { return System.currentTimeMillis(); }
 
@@ -156,7 +207,7 @@ public class AgentClassInfo implements Serializable {
         diskWriteChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordMigrateTime(double v, long t) {
+    @JsonIgnore private void recordMigrateTime(long v, long t) {
         migrateTime = migrateTimeRecords.isEmpty() ? v : ema(migrateTime, v);
         migrateTimeRecords.put(t, v);
     }

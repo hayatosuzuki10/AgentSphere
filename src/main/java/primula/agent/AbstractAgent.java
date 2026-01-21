@@ -23,6 +23,7 @@ import primula.api.core.resource.SystemResource;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 import scheduler2022.ClockSpeed;
+import scheduler2022.InformationCenter;
 import scheduler2022.MemoryMeasure;
 import scheduler2022.Scheduler;
 import scheduler2022.util.DHTutil;
@@ -36,6 +37,20 @@ public abstract class AbstractAgent extends SystemResource
 	private long migrateStartTime = System.currentTimeMillis();
 	public double priority = 0.5;
 	public int migrateCount = 0;
+
+
+    private int cpuChange = 0;
+    private int gpuChange = 0;
+    private long networkUpChange = 0;
+    private long networkDownChange = 0;
+
+    private long heapChange = 0;
+    private int gcCountChange = 0;
+
+    private long diskReadChange = 0;
+    private long diskWriteChange = 0;
+
+    private long migrateTime = 0;
 	
 	
     public AgentInstanceInfo getAgentInfo() {
@@ -119,7 +134,7 @@ public abstract class AbstractAgent extends SystemResource
     public void setMigrateTime() {
     	lastMigrateTime = System.currentTimeMillis() - migrateStartTime;
     	if (lastMigrateTime < 0) lastMigrateTime = 0;
-    	AgentClassInfo info = DHTutil.getAgentInfo(this.getAgentName());
+    	AgentClassInfo info = InformationCenter.getAgentClassInfo(this.getAgentName());
     	info.setMigrateTime(lastMigrateTime);
     	DHTutil.setAgentInfo(this.getAgentName(), info);
     }
@@ -159,9 +174,15 @@ public abstract class AbstractAgent extends SystemResource
 	        info.setIpAddress(IPAddress.myIPAddress);
 	        Scheduler.agentInfo.put(agentID, info);
 	    }
-	    AgentClassInfo classInfo = DHTutil.getAgentInfo(getAgentName());
+	    AgentClassInfo classInfo = InformationCenter.getAgentClassInfo(getAgentName());
 	    if(classInfo == null) {
-	    	classInfo = new AgentClassInfo(getAgentName());
+	    	classInfo = new AgentClassInfo(
+	                getAgentName(), cpuChange, gpuChange,
+	                networkUpChange, networkDownChange,
+	                heapChange, gcCountChange,
+	                diskReadChange, diskWriteChange,
+	                migrateTime
+	        );
 	    	DHTutil.setAgentInfo(getAgentName(), classInfo);
 	    }
 

@@ -20,6 +20,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     /* ===== 安定化用パラメータ ===== */
     private static final long IP_CACHE_TTL_MS = 5_000;
     
+    private final double MEMORY_LIMIT = 0.8;
+    
     private static double cpuWeight = 4;
     private static double gpuWeight = 4;
     private static double memWeight = 3;
@@ -65,6 +67,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             DynamicPCInfo myDyn = InformationCenter.getMyDPI();
             StaticPCInfo mySta = InformationCenter.getMySPI();
 
+            AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getAgentName());
+            
             if (myDyn == null|| mySta == null) {
                 return selfIP;
             }
@@ -72,22 +76,39 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress);
 
             for (String ip : getAliveIPs()) {
+            	
                 if (ip.equals(selfIP)) continue;
 
                 try {
                     DynamicPCInfo dyn = InformationCenter.getOtherDPI(ip);
                     StaticPCInfo sta = InformationCenter.getOtherSPI(ip);
+                    boolean agentNeedsGPU = info.getGpuChange() > 0;
+                	boolean clusterHasGpuAgents = checkIfGpuAgentsExist();
+                	boolean isGpuPc = (sta != null && sta.GPUs != null && !sta.GPUs.isEmpty());
+
 
                     if (hasMeetDemand(agent, dyn, sta)) {
                     	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                    	
+                    	
+                    	// スコアにGPUポリシー調整
+                    	if (agentNeedsGPU && !isGpuPc) {
+                    	    continue; // GPUが必要なのに搭載されていない → スキップ
+                    	} else if (!agentNeedsGPU && clusterHasGpuAgents && isGpuPc) {
+                    	    result.score -= 1.0; // 避けられるなら避ける程度の減点
+                    	}
                         if (result.score > bestResult.score) {
                             bestResult = result;
                         }
                     }else {
                     	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                    	if (!agentNeedsGPU && clusterHasGpuAgents && isGpuPc) {
+                    	    result.score -= 1.0; // 避けられるなら避ける程度の減点
+                    	}
                         if (result.score > notBadResult.score) {
                             notBadResult = result;
                         }
+                        
                     }
 
                     
@@ -105,6 +126,16 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             	agent.RegistarHistory(notBadResult.ip, myScoreResult.reason + notBadResult.reason);
             	return notBadResult.ip;
             }
+            
+            if(isOutOfMemory(myDyn)) {
+            	if(bestResult != null) {
+
+                    agent.RegistarHistory(bestResult.ip, "[OUT OF MEMORY]"+ myScoreResult.reason + bestResult.reason);
+            		return bestResult.ip;
+            	}
+            	agent.RegistarHistory(notBadResult.ip, "[OUT OF MEMORY]"+ myScoreResult.reason + notBadResult.reason);
+            	return notBadResult.ip;
+            }
 
             return selfIP;
         }
@@ -112,7 +143,26 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
     /* ================= ユーティリティ ================= */
 
- 
+    
+ // GPU要求エージェントがクラスタ内に存在するか？
+    private boolean checkIfGpuAgentsExist() {
+        for (String ip : getAliveIPs()) {
+            DynamicPCInfo dpi = InformationCenter.getOtherDPI(ip);
+            if (dpi == null || dpi.Agents == null) continue;
+
+            for (var agent : dpi.Agents.values()) {
+                AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.Name);
+                if (info != null && info.getGpuChange() > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    private boolean isOutOfMemory(DynamicPCInfo dpi) {
+    	return dpi.Memory.JvmHeapUsed / dpi.Memory.JvmHeapMax > MEMORY_LIMIT;
+    }
 
     private Set<String> getAliveIPs() {
         long now = System.currentTimeMillis();
@@ -139,7 +189,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             DynamicPCInfo dstDpi = InformationCenter.getOtherDPI(dst);
             DynamicPCInfo myDpi  = InformationCenter.getMyDPI();
 
-            AgentClassInfo info = DHTutil.getAgentInfo(agent.getClass().getName());
+            AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getClass().getName());
 
             if (dstSpi == null || mySpi == null || dstDpi == null || myDpi == null || info == null) return;
 
@@ -315,7 +365,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             DynamicPCInfo dyn,
             StaticPCInfo sta) {
 
-    	AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
+    	AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getAgentName());
     	if (info == null) return false;
 
     	// ---- CPU ----
@@ -458,7 +508,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             StaticPCInfo sta,
             String ip) {
 
-        AgentClassInfo info = scheduler2022.util.DHTutil.getAgentInfo(agent.getAgentName());
+        AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getAgentName());
         if (info == null || dyn == null || sta == null)
             return new ScoreResult(ip, Double.NEGATIVE_INFINITY, "info/dyn/sta null for IP=" + ip);
 

@@ -17,6 +17,7 @@ import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo.Agent;
+import scheduler2022.InformationCenter;
 import scheduler2022.Scheduler;
 import scheduler2022.util.DHTutil;
 
@@ -62,7 +63,7 @@ public class AgentInstanceInfo implements Serializable{
 	            this.setCpuChange(ema(this.getCpuChange(), cpuChange, Scheduler.getEmaAlpha()));
 	        }
 	        cpuChangeRecords.put(time, cpuChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        AgentClassInfo info = InformationCenter.getAgentClassInfo(this.name);
 	        if (info == null) return;   // ★busy時はスキップ
 	        info.setCpuChange(cpuChange);
 	        DHTutil.setAgentInfo(this.name, info);
@@ -77,7 +78,7 @@ public class AgentInstanceInfo implements Serializable{
 	            this.gpuChange = ema(this.gpuChange, gpuChange, Scheduler.getEmaAlpha());
 	        }
 	        gpuChangeRecords.put(time, gpuChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        AgentClassInfo info = InformationCenter.getAgentClassInfo(this.name);
 
 	        if (info == null) return;   // ★busy時はスキップ
 	        info.setGpuChange(gpuChange);
@@ -94,7 +95,7 @@ public class AgentInstanceInfo implements Serializable{
 	            this.networkUpChange = ema(this.networkUpChange, networkUpChange, Scheduler.getEmaAlpha());
 	        }
 	        networkUpChangeRecords.put(time, networkUpChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        AgentClassInfo info = InformationCenter.getAgentClassInfo(this.name);
 
 	        if (info == null) return;   // ★busy時はスキップ
 	        info.setNetworkUpChange(networkUpChange);
@@ -111,7 +112,7 @@ public class AgentInstanceInfo implements Serializable{
 	        }
 	        
 	        networkDownChangeRecords.put(time, networkDownChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        AgentClassInfo info = InformationCenter.getAgentClassInfo(this.name);
 
 	        if (info == null) return;   // ★busy時はスキップ
 	        info.setNetworkDownChange(networkDownChange);
@@ -126,7 +127,7 @@ public class AgentInstanceInfo implements Serializable{
 	            this.heapChange = ema(this.heapChange, heapChange, Scheduler.getEmaAlpha());
 	        }
 	        heapChangeRecords.put(time, heapChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        AgentClassInfo info = InformationCenter.getAgentClassInfo(this.name);
 
 	        if (info == null) return;   // ★busy時はスキップ
 	        info.setHeapChange(heapChange);
@@ -144,7 +145,7 @@ public class AgentInstanceInfo implements Serializable{
 	            this.gcCountChange = ema(this.gcCountChange, gcCountChange, Scheduler.getEmaAlpha());
 	        }
 	        gcCountChangeRecords.put(time, gcCountChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        AgentClassInfo info = InformationCenter.getAgentClassInfo(this.name);
 
 	        if (info == null) return;   // ★busy時はスキップ
 	        info.setGCCountChange(gcCountChange);
@@ -170,7 +171,7 @@ public class AgentInstanceInfo implements Serializable{
 	        diskWriteChangeRecords.put(time, write);
 
 	        // ---- DHT更新 ----
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
+	        AgentClassInfo info = InformationCenter.getAgentClassInfo(this.name);
 	        if (info != null) {
 	            info.setDiskReadChange(read);
 	            info.setDiskWriteChange(write);

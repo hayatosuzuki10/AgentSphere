@@ -133,7 +133,9 @@ public class StaticPCInfoCollector implements Serializable {
                .filter(e -> cpu.Name != null && cpu.Name.contains(e.getKey()))
                .findFirst()
                .ifPresent(e -> cpu.BenchMarkScore = e.getValue());
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        	System.err.println("CPUBenchMarkScore can't collect");
+        }
     }
 
     private void applyGpuBenchmark(Map<String, StaticPCInfo.GPU> gpus) {

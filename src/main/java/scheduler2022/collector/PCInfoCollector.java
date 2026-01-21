@@ -1,6 +1,5 @@
 package scheduler2022.collector;
 
-import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
+import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.assh.ConsolePanel;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
@@ -64,6 +64,8 @@ public class PCInfoCollector implements Runnable {
 
     private Map<String, DynamicPCInfo> allDPIs = new HashMap<>();
     private Map<String, StaticPCInfo> allSPIs = new HashMap<>();
+    
+    private Map<String, AgentClassInfo> allAgentInfo = new HashMap<>();
 
 	public static volatile JfrMonitorThread jfr;
 	public static volatile JfrMonitorThread.Snapshot snapshot;
@@ -115,9 +117,13 @@ public class PCInfoCollector implements Runnable {
                     DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
                     if (dpi != null) {
                         allDPIs.put(ip, dpi);
+                        for (var agent : dpi.Agents.values()) {
+                            AgentClassInfo info = DHTutil.getAgentInfo(agent.Name);
+                            allAgentInfo.put(agent.Name, info);
+                        }
                     }
                     StaticPCInfo spi = DHTutil.getStaticPCInfo(ip);
-                    if(dpi != null) {
+                    if(spi != null) {
                     	allSPIs.put(ip, spi);
                     }
                 }
@@ -125,6 +131,7 @@ public class PCInfoCollector implements Runnable {
                 // 6) InfomationCenter に「他ノードの DPI 一覧」として反映
                 InformationCenter.setOtherDPIs(allDPIs);
                 InformationCenter.setOtherSPIs(allSPIs);
+                InformationCenter.setAllAgentClassInfos(allAgentInfo);
                 
 
 

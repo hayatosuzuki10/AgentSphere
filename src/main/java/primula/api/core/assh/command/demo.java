@@ -31,7 +31,6 @@ import scheduler2022.DynamicPCInfo;
 import scheduler2022.InformationCenter;
 import scheduler2022.Scheduler;
 import scheduler2022.StaticPCInfo;
-import scheduler2022.util.DHTutil;
 
 /**
  * 修論用 demo:
@@ -494,7 +493,7 @@ public class demo extends AbstractCommand {
             sb.append("(no agent classes found)\n");
         } else {
             for (String cn : classNames) {
-                AgentClassInfo info = DHTutil.getAgentInfo(cn);
+                AgentClassInfo info = InformationCenter.getAgentClassInfo(cn);
                 sb.append("[").append(cn).append("]\n");
                 sb.append(info != null ? info.toString() : "(no AgentClassInfo in DHT)\n");
                 sb.append("\n");
