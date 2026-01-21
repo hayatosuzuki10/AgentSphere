@@ -19,9 +19,8 @@ import primula.agent.AbstractAgent;
 import primula.api.core.agent.AgentInstanceInfo;
 import primula.api.core.assh.ConsolePanel;
 import primula.util.IPAddress;
-import scheduler2022.collector.DynamicPcInfoCollector;
+import scheduler2022.collector.PCInfoCollector;
 import scheduler2022.network.NetworkSpeedReceiverThread;
-import scheduler2022.repository.PCInfoRepository;
 import scheduler2022.server.EmbeddedHttpServer;
 import scheduler2022.server.SchedulerConfig;
 import scheduler2022.server.SchedulerMessageServer;
@@ -67,12 +66,6 @@ public class Scheduler implements Runnable {
 	public static DynamicPCInfoDetector analyze;
 	
 
-	private final DynamicPcInfoCollector collector = new DynamicPcInfoCollector();
-	private final static PCInfoRepository pcInfoRepo = new PCInfoRepository();
-	private final scheduler2022.collector.StaticPCInfoCollector staticCollector =
-	        new scheduler2022.collector.StaticPCInfoCollector();
-	public static volatile JfrMonitorThread jfr;
-	public static volatile JfrMonitorThread.Snapshot snapshot;
 	
 	/**
 	 * スケジューラの情報更新間隔を表す定数(ms)
@@ -92,16 +85,10 @@ public class Scheduler implements Runnable {
 		
 		startMessageServerSecurely();
 		startNetworkSpeedReceiverSecurely();
+		startPCInfoCollctorSecurely();
 
 
-		jfr = new JfrMonitorThread(snap -> {
-		    // ここでダッシュボードに送る / ログる / 判定する など
-			snapshot = snap;
-
-		});
-		jfr.start();
 		
-	    setStaticPCInfo();
 	    DHTutil.setAcceptable(IPAddress.myIPAddress, true);
 	    Runtime rt = Runtime.getRuntime();
 	    long max = rt.maxMemory();      // -Xmx 相当（最大ヒープ）
@@ -145,6 +132,17 @@ public class Scheduler implements Runnable {
 	    }
 	}
 	
+	private void startPCInfoCollctorSecurely() {
+	    try {
+	        Thread t = new Thread(new PCInfoCollector());
+	        t.setDaemon(true);
+	        t.start();
+	    } catch (Exception e) {
+	        System.err.println("[WARN] NetworkSpeedReceiver failed: " + e.getMessage());
+	        e.printStackTrace();
+	    }
+	}
+	
 	private void startNetworkSpeedReceiverSecurely() {
 	    try {
 	        Thread receiver = new NetworkSpeedReceiverThread(getReceiverPort());
@@ -158,12 +156,6 @@ public class Scheduler implements Runnable {
 	
 	
 
-	private void setStaticPCInfo() {
-	    StaticPCInfo spi = staticCollector.collect();
-	    Scheduler.analyze = new DynamicPCInfoDetector(spi);
-	    scheduler2022.util.DHTutil.setStaticPCInfo(primula.util.IPAddress.myIPAddress, spi);
-	
-	}
 
 
 	private void startLoop() {
@@ -182,8 +174,6 @@ public class Scheduler implements Runnable {
 	private void tick() {
 	    if (hasStop) return;
 	    try {
-	        updateMyDynamicPCInfo();
-	        updateMyAgentInfos();
 	        if(isServer) {
 	        	updateIPSetChangedTime();
 	        }
@@ -197,70 +187,7 @@ public class Scheduler implements Runnable {
 	    }
 	}
 
-	// ↓-----------tick関数用private関数--------------↓
-	private void updateMyDynamicPCInfo() {
-		
-	    double tmp = cp.getSystemLoadAverage(1)[0];
-	    if (tmp < 0) return;
-	    if (JudgeOS.isWindows()) tmp += 1.0;
 
-	    final double la = tmp; 
-	    DynamicPCInfo prevDPI = DHTutil.getPcInfo(IPAddress.myIPAddress);
-	    DynamicPCInfo dpi;
-	    if (prevDPI != null && prevDPI.isForecast
-	            && prevDPI.timeStanp + getTimeStampExpire() > System.currentTimeMillis()) {
-
-	        dpi = prevDPI;
-
-	    } else {
-	        // ここを Collector に委譲
-	    	dpi = collector.collect(
-	                allIPAddresses,
-	                getReceiverPort() + 1,
-	                isFirst(),
-	                snapshot.gcCount,          // JFRからの値
-	                snapshot.gcPauseMillis     // JFRからの値
-	        );
-	        getPcInfoRepo().saveDynamic(IPAddress.myIPAddress, dpi);
-	    }
-	    latestDPI = dpi;
-	    DynamicPCInfo dpiCopy = dpi.deepCopy();
-	    Scheduler.analyze.add(dpiCopy);
-	    if(Scheduler.analyze.size() >= 10) {
-	    	Scheduler.analyze.poll();
-	    }
-	    javax.swing.SwingUtilities.invokeLater(() ->
-	    	ConsolePanel.setPanelTitle("LA=" + la + " AgentNum=" + dpi.AgentsNum));
-	    infoUpdateListeners.parallelStream().forEach(l -> l.pcInfoUpdate(dpi));
-	    StaticPCInfo spi = DHTutil.getStaticPCInfo(IPAddress.myIPAddress);
-	    if(spi == null || spi.CPU == null || spi.CPU.BenchMarkScore == 0) {
-	    	setStaticPCInfo();
-	    }
-	}
-	private void updateMyAgentInfos(){
-
-//
-//		HashMap<String,List<AgentInfo>> agentInfos = AgentAPI.getAgentInfos();
-//		S2Container factory = S2ContainerFactory.create("./setting/StartupAgent.dicon");//diconの中身が読み込まれ、Agentとして起動される
-//		List<String> agentNames = new ArrayList<>();
-//		for (int i = 0; i < factory.getComponentDefSize(); i++) {
-//			Object agent = factory.getComponentDef(i).getComponent();
-//			agentNames.add(agent.getClass().getName());
-//			
-//		}
-//		for(String string:agentInfos.keySet()){
-//            for(AgentInfo info:agentInfos.get(string)){
-//            	if(agentNames.contains(info.getAgentName()))
-//            		continue;
-//            	info.ipAddress = IPAddress.myIPAddress;
-//            	AbstractAgent agent = info.getAgent();
-//            	info.progress = agent.progress;
-//            	info.migrateTime = agent.migrateTime;
-//            	DHTutil.setAgentInfo(info.getAgentId(), info);
-//            }
-//        }
-	}
-	
 	
 	
 	private void updateIPSetChangedTime() {
@@ -284,7 +211,7 @@ public class Scheduler implements Runnable {
 
 	// 現在のIP集合を取得（自分自身も含める）
 	private static Set<String> currentIPs() {
-	    Set<String> cur = new java.util.HashSet<>(DHTutil.getAllSuvivalIPaddresses());
+	    Set<String> cur = new java.util.HashSet<>(InformationCenter.getOthersIPs());
 	    cur.add(IPAddress.myIPAddress);
 	    return cur;
 	}
@@ -333,7 +260,7 @@ public class Scheduler implements Runnable {
 	}
 	
 	public static void storeDPI() {
-		DynamicPCInfo dpi = DHTutil.getPcInfo(IPAddress.myIPAddress).deepCopy();
+		DynamicPCInfo dpi = InformationCenter.getMyDPI();
 		if(dpiBeforeChange != null) {
 			previousDPIBeforeChange = dpiBeforeChange.deepCopy();
 			timeBeforeDPIChange = timeAfterDPIChange;
@@ -409,7 +336,7 @@ public class Scheduler implements Runnable {
 		
 		if(isServer) {
 			SchedulerConfig config = new SchedulerConfig(strategyName, newInterval, newAgentObserveTime, newAgentRemigrateProhibitTime, newEMAAlpha);
-			for(String ip : DHTutil.getAllSuvivalIPaddresses()) {
+			for(String ip : InformationCenter.getOthersIPs()) {
 				System.out.println(ip);
 				SchedulerMessenger.sendChangeSchedulerStrategyRequest(ip, 8888, config);
 			}
@@ -486,9 +413,6 @@ public class Scheduler implements Runnable {
 		Scheduler.emaAlpha = emaAlpha;
 	}
 
-	public static PCInfoRepository getPcInfoRepo() {
-		return pcInfoRepo;
-	}
 
 	public static long getTimeStampExpire() {
 		return timeStampExpire;

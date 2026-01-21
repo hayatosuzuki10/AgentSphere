@@ -25,10 +25,11 @@ import oshi.hardware.CentralProcessor;
 import primula.api.core.ICoreModule;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
+import scheduler2022.InformationCenter;
 import scheduler2022.JudgeOS;
 import scheduler2022.Scheduler;
 import scheduler2022.collector.DynamicPcInfoCollector;
-import scheduler2022.util.DHTutil;
+import scheduler2022.collector.PCInfoCollector;
 import sphereConnection.stub.SphereSpec;
 
 /**
@@ -505,7 +506,7 @@ public class EasyDistributeHashTable implements ICoreModule {
 	    if (JudgeOS.isWindows()) tmp += 1.0;
 
 	    final double la = tmp; 
-	    DynamicPCInfo prevDPI = DHTutil.getPcInfo(IPAddress.myIPAddress);
+	    DynamicPCInfo prevDPI = InformationCenter.getMyDPI();
 	    DynamicPCInfo dpi;
 	    if (prevDPI != null && prevDPI.isForecast
 	            && prevDPI.timeStanp + Scheduler.getTimeStampExpire() > System.currentTimeMillis()) {
@@ -514,13 +515,13 @@ public class EasyDistributeHashTable implements ICoreModule {
 
 	    } else {
 	    	dpi = collector.collect(
-		            DHTutil.getAllSuvivalIPaddresses(),
+	    			InformationCenter.getOthersIPs(),
 		            Scheduler.getReceiverPort() + 1,
 		            Scheduler.isFirst(),
-		            Scheduler.snapshot.gcCount,          // JFRからの値
-		            Scheduler.snapshot.gcPauseMillis     // JFRからの値
+		            PCInfoCollector.snapshot.gcCount,          // JFRからの値
+		            PCInfoCollector.snapshot.gcPauseMillis     // JFRからの値
 		    );
-	        Scheduler.getPcInfoRepo().saveDynamic(IPAddress.myIPAddress, dpi);
+	        PCInfoCollector.getPcInfoRepo().saveDynamic(IPAddress.myIPAddress, dpi);
 	    }
 	    
 	    setPcInfo(myIP, dpi);

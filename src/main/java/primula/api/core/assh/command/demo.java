@@ -27,8 +27,8 @@ import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.agent.loader.multiloader.ChainContainer;
 import primula.api.core.agent.loader.multiloader.GhostClassLoader;
 import primula.api.core.agent.loader.multiloader.StringSelector;
-import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
+import scheduler2022.InformationCenter;
 import scheduler2022.Scheduler;
 import scheduler2022.StaticPCInfo;
 import scheduler2022.util.DHTutil;
@@ -204,13 +204,9 @@ public class demo extends AbstractCommand {
         strategy = Scheduler.getStrategy().getClass().getName();
 
         // ---------- 実験対象IPの取得（DHTベース） ----------
-        Set<String> currentIPs = DHTutil.getAllSuvivalIPaddresses();
-        currentIPs.add(IPAddress.myIPAddress);
+        Set<String> currentIPs = InformationCenter.getAllIPs();
 
-        for (String ip : currentIPs) {
-            StaticPCInfo spi = DHTutil.getStaticPCInfo(ip);
-            staticPCInfos.put(ip, spi);
-        }
+        staticPCInfos = InformationCenter.getAllSPIs();
 
         // ---------- Master起動 ----------
         Map<String, String> masterIdToClass = new LinkedHashMap<>();
@@ -258,9 +254,9 @@ public class demo extends AbstractCommand {
         long deadline = startTime + DEMO_TIMEOUT_MS;
 
         while (mastersFinished.get() < expectedMasters && System.currentTimeMillis() < deadline) {
-
+        	
             for (String ip : currentIPs) {
-                DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
+                DynamicPCInfo dpi = InformationCenter.getOtherDPI(ip);
 
                 if (dpi == null || dpi.LoadAverage < 0) continue;
                 if (dpi.CPU == null) continue;

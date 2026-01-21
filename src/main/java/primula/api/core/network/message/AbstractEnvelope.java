@@ -18,7 +18,7 @@ public abstract class AbstractEnvelope implements Serializable {
 
 	private AbstractContentContainer content;
 	private AgentAddress targetAgentAddress;
-	private int ttl;
+	private int ttl = 100;
 	{
 		ttl = Integer.parseInt((String) SystemAPI.getSystemConfigData(SystemConfigResource.DEFAULT_MESSAGE_TTL));
 		//System.err.println(this.getClass().toString()+":ttl->"+ttl);//テスト用

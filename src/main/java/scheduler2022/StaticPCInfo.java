@@ -22,6 +22,69 @@ public class StaticPCInfo implements Serializable {
         this.GPUs = GPUs;
     }
 
+    /**
+     * 深いコピー（deep copy）を返す。
+     * 全て new してデータを複製するため、
+     * 状態変更が元インスタンスへ影響しない。
+     */
+    public StaticPCInfo deepCopy() {
+        StaticPCInfo copy = new StaticPCInfo();
+
+        // --- CPU ---
+        if (this.CPU != null) {
+            CPU cpuCopy = new CPU();
+            cpuCopy.Name = this.CPU.Name;
+            cpuCopy.Vendor = this.CPU.Vendor;
+            cpuCopy.MicroArch = this.CPU.MicroArch;
+            cpuCopy.PhysicalCore = this.CPU.PhysicalCore;
+            cpuCopy.LogicalCore = this.CPU.LogicalCore;
+            cpuCopy.BenchMarkScore = this.CPU.BenchMarkScore;
+            copy.CPU = cpuCopy;
+        }
+
+        // --- TotalMemory ---
+        copy.TotalMemory = this.TotalMemory;
+
+        // --- NetworkCards ---
+        if (this.NetworkCards != null) {
+            Map<String, NetworkCard> ncMap = new java.util.HashMap<>();
+            for (Map.Entry<String, NetworkCard> e : this.NetworkCards.entrySet()) {
+                NetworkCard src = e.getValue();
+                if (src == null) continue;
+
+                NetworkCard dst = new NetworkCard();
+                dst.Name = src.Name;
+                dst.DisplayName = src.DisplayName;
+                dst.Bandwidth = src.Bandwidth;
+                dst.MTU = src.MTU;
+
+                ncMap.put(e.getKey(), dst);
+            }
+            copy.NetworkCards = ncMap;
+        }
+
+        // --- GPUs ---
+        if (this.GPUs != null) {
+            Map<String, GPU> gpuMap = new java.util.HashMap<>();
+            for (Map.Entry<String, GPU> e : this.GPUs.entrySet()) {
+                GPU src = e.getValue();
+                if (src == null) continue;
+
+                GPU dst = new GPU();
+                dst.Name = src.Name;
+                dst.Vendor = src.Vendor;
+                dst.VRam = src.VRam;
+                dst.DeviceID = src.DeviceID;
+                dst.BenchMarkScore = src.BenchMarkScore;
+
+                gpuMap.put(e.getKey(), dst);
+            }
+            copy.GPUs = gpuMap;
+        }
+
+        return copy;
+    }
+
     @Override
     public String toString() {
         return "StaticPCInfo{CPU=" + CPU +
@@ -29,6 +92,8 @@ public class StaticPCInfo implements Serializable {
                ", NetworkCards=" + (NetworkCards != null ? NetworkCards.size() : 0) +
                ", GPUs=" + (GPUs != null ? GPUs.size() : 0) + "}";
     }
+
+    // --- Inner Classes ---
 
     public static class CPU implements Serializable {
         private static final long serialVersionUID = 1L;

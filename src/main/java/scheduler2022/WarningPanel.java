@@ -4,7 +4,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import primula.util.IPAddress;
-import scheduler2022.util.DHTutil;
 
 public class WarningPanel extends JFrame{
 	private String[] CanMigratePCs;
@@ -19,9 +18,9 @@ public class WarningPanel extends JFrame{
 	public WarningPanel() {
 		JPanel panel = new JPanel();
 
-		CanMigratePCs = new String[DHTutil.getAllSuvivalIPaddresses().size()];
+		CanMigratePCs = new String[InformationCenter.getOthersIPs().size()];
 		int i = 0;
-		for(String str : DHTutil.getAllSuvivalIPaddresses()) {
+		for(String str : InformationCenter.getOthersIPs()) {
 			if(IPAddress.myIPAddress != str) {
 				CanMigratePCs[i] = str;
 			}

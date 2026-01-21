@@ -8,6 +8,7 @@ import primula.agent.AbstractAgent;
 import primula.api.core.agent.AgentClassInfo;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
+import scheduler2022.InformationCenter;
 import scheduler2022.Scheduler;
 import scheduler2022.StaticPCInfo;
 import scheduler2022.util.DHTutil;
@@ -54,8 +55,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             double bestScore = Double.NEGATIVE_INFINITY;
             double notBadScore = Double.NEGATIVE_INFINITY;
 
-            DynamicPCInfo myDyn = DHTutil.getPcInfo(selfIP);
-            StaticPCInfo mySta = DHTutil.getStaticPCInfo(selfIP);
+            DynamicPCInfo myDyn = InformationCenter.getMyDPI();
+            StaticPCInfo mySta = InformationCenter.getMySPI();
 
             if (myDyn == null|| mySta == null) {
                 return selfIP;
@@ -67,8 +68,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 if (ip.equals(selfIP)) continue;
 
                 try {
-                    DynamicPCInfo dyn = DHTutil.getPcInfo(ip);
-                    StaticPCInfo sta = DHTutil.getStaticPCInfo(ip);
+                    DynamicPCInfo dyn = InformationCenter.getMyDPI();
+                    StaticPCInfo sta = InformationCenter.getMySPI();
 
                     if (hasMeetDemand(agent, dyn, sta)) {
                     	double score = calculateMatchScore(agent, dyn, sta, ip);
@@ -113,7 +114,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             return cachedIPs;
         }
         try {
-            cachedIPs = DHTutil.getAllSuvivalIPaddresses();
+            cachedIPs = InformationCenter.getOthersIPs();
             lastIPFetchTime = now;
         } catch (Exception e) {
             System.out.println("[IP-CACHE] fallback");
@@ -126,11 +127,11 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
     private void setTemporaryPrediction(AbstractAgent agent, String dst) {
         try {
-            StaticPCInfo dstSpi = DHTutil.getStaticPCInfo(dst);
-            StaticPCInfo mySpi  = DHTutil.getStaticPCInfo(IPAddress.myIPAddress);
+            StaticPCInfo dstSpi = InformationCenter.getOtherSPI(dst);
+            StaticPCInfo mySpi  = InformationCenter.getMySPI();
 
-            DynamicPCInfo dstDpi = DHTutil.getPcInfo(dst);
-            DynamicPCInfo myDpi  = DHTutil.getPcInfo(IPAddress.myIPAddress);
+            DynamicPCInfo dstDpi = InformationCenter.getOtherDPI(dst);
+            DynamicPCInfo myDpi  = InformationCenter.getMyDPI();
 
             AgentClassInfo info = DHTutil.getAgentInfo(agent.getClass().getName());
 
@@ -474,16 +475,16 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     	int agentNum = 0;
     	double congestion = 0;
     	for(String ipAddress: cachedIPs) {
-    		agentNum += DHTutil.getPcInfo(ipAddress).Agents.size();
+    		agentNum += InformationCenter.getOtherDPI(ipAddress).Agents.size();
     	}
-    	int myAgentNum = DHTutil.getPcInfo(ip).Agents.size();
+    	int myAgentNum = InformationCenter.getOtherDPI(ip).Agents.size();
     	if(agentNum == 0 || myAgentNum == 0) {
     		congestion = 0;
     	} else {
     		congestion = clamp01(myAgentNum / agentNum);
     	}
 
-    	DynamicPCInfo myDPI = DHTutil.getPcInfo(IPAddress.myIPAddress);
+    	DynamicPCInfo myDPI = InformationCenter.getMyDPI();
     	double networkSpeedNorm = 0;
     	if(myDPI.NetworkSpeeds != null && myDPI.NetworkSpeeds.get(ip) != null) {
     		networkSpeedNorm = clamp01(myDPI.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900);
