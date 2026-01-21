@@ -29,13 +29,11 @@ public class AgentInstanceInfo implements Serializable{
 		private long startTime;
 	    private int cpuChange = 5000;
 	    private int gpuChange = 5000;
-	    private long memoryChange = 5000;
 	    private long networkUpChange = 5000;
 	    private long networkDownChange = 5000;
 
 	    // ★ 追加：メモリ負荷の内訳
 	    private long heapChange = 0;         // ヒープ差分(bytes)
-	    private long realMemoryChange = 0;  // HostAvailable の差分(bytes)
 	    private int gcCountChange = 0;      // GC 回数差分
 	    
 	    private double priority = 0.5;
@@ -46,11 +44,9 @@ public class AgentInstanceInfo implements Serializable{
 		
 		private Map<Long, Integer> cpuChangeRecords = new HashMap<>();
 		private Map<Long, Integer> gpuChangeRecords = new HashMap<>();
-		private Map<Long, Long> memoryChangeRecords = new HashMap<>();
 		private Map<Long, Long> networkUpChangeRecords = new HashMap<>();
 		private Map<Long, Long> networkDownChangeRecords = new HashMap<>();
 		private Map<Long, Long> heapChangeRecords = new HashMap<>();
-	    private Map<Long, Long> realMemoryChangeRecords = new HashMap<>();
 	    private Map<Long, Integer> gcCountChangeRecords = new HashMap<>();
 	    
 		
@@ -84,20 +80,7 @@ public class AgentInstanceInfo implements Serializable{
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
 
-	    @JsonIgnore
-	    public void recordMemoryChange(long memoryChange, long time) {
-	        if (memoryChangeRecords.isEmpty()) {
-	            this.memoryChange = memoryChange;
-	        } else {
-	            this.memoryChange = ema(this.memoryChange, memoryChange, Scheduler.getEmaAlpha());
-	        }
-	        memoryChangeRecords.put(time, memoryChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
-
-	        if (info == null) return;   // ★busy時はスキップ
-	        info.setMemoryChange(memoryChange);
-	        DHTutil.setAgentInfo(this.name, info);
-	    }
+	
 
 	    @JsonIgnore
 	    public void recordNetworkUpChange(long networkUpChange, long time) {
@@ -146,21 +129,7 @@ public class AgentInstanceInfo implements Serializable{
 	        DHTutil.setAgentInfo(this.name, info);
 	    }
 
-	    // ★ 追加：実メモリ差分 (HostAvailable の減少分)
-	    @JsonIgnore
-	    public void recordRealMemoryChange(long realMemoryChange, long time) {
-	        if (realMemoryChangeRecords.isEmpty()) {
-	            this.realMemoryChange = realMemoryChange;
-	        } else {
-	            this.realMemoryChange = ema(this.realMemoryChange, realMemoryChange, Scheduler.getEmaAlpha());
-	        }
-	        realMemoryChangeRecords.put(time, realMemoryChange);
-	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
-
-	        if (info == null) return;   // ★busy時はスキップ
-	        info.setRealMemoryChange(realMemoryChange);
-	        DHTutil.setAgentInfo(this.name, info);
-	    }
+	    
 
 	    // ★ 追加：GC 回数差分
 	    @JsonIgnore
@@ -225,8 +194,6 @@ public class AgentInstanceInfo implements Serializable{
 	        this.setStartTime(startTime);
 	        this.setCpuChange(cpuChange);
 	        this.gpuChange = gpuChange;
-	        // ★ 修正
-	        this.memoryChange = memoryChange;
 	        this.networkUpChange = networkChange;
 	        this.setPriority(priority);
 	        this.progress = progress;
@@ -243,10 +210,8 @@ public class AgentInstanceInfo implements Serializable{
 	                ", startTime=" + getStartTime() +
 	                ", cpuChange=" + getCpuChange() +
 	                ", gpuChange=" + gpuChange +
-	                ", memoryChange=" + memoryChange +
 	                ", networkChange=" + networkUpChange +
 	                ", heapChange=" + heapChange +
-	                ", realMemoryChange=" + realMemoryChange +
 	                ", gcCountChange=" + gcCountChange +
 	                ", priority=" + getPriority() +
 	                ", progress=" + progress +

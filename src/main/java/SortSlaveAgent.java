@@ -49,7 +49,14 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
                 try { Thread.sleep(100); } catch (InterruptedException ignored) {}
                 continue;
             }
+
             String dest = Scheduler.getNextDestination(this);
+            try {
+                MessageAPI.removeMessageListener(this);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
             migrate(dest);
             try {
                 MessageAPI.registerMessageListener(this);

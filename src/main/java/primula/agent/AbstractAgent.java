@@ -32,6 +32,10 @@ public abstract class AbstractAgent extends SystemResource
 		implements Serializable, Runnable, Callable<ContinuationData> {
 	
 	private AgentInstanceInfo info;
+	private long lastMigrateTime = 0;
+	private long migrateStartTime = System.currentTimeMillis();
+	public double priority = 0.5;
+	public int migrateCount = 0;
 	
     public AgentInstanceInfo getAgentInfo() {
     	return info;
@@ -109,7 +113,13 @@ public abstract class AbstractAgent extends SystemResource
     public double progress = -1;
     
 
-
+    public void setMigrateTime() {
+    	lastMigrateTime = System.currentTimeMillis() - migrateStartTime;
+    	if (lastMigrateTime < 0) lastMigrateTime = 0;
+    	AgentClassInfo info = DHTutil.getAgentInfo(this.getAgentName());
+    	info.setMigrateTime(lastMigrateTime);
+    	DHTutil.setAgentInfo(this.getAgentName(), info);
+    }
 	
 
 	public void forcedMove(String ad) {
@@ -226,12 +236,7 @@ public abstract class AbstractAgent extends SystemResource
 			Javaflow = Continuation.startWith(this);
 			
 		} else {
-			//同上 
-			info.setMigrateTime(System.nanoTime() - info.getPreviousMigrateTime());
-
-			AgentInstanceInfo info = Scheduler.agentInfo.get(agentID);
-					
-			info.setMigrateTime(this.info.getMigrateTime());
+			setMigrateTime();
 
 			Javaflow = Javaflow.resume();
 		}
@@ -257,7 +262,7 @@ public abstract class AbstractAgent extends SystemResource
 			//System.out.println("//Migration//");
 			//System.err.println(this.getAgentName() + ":Migration to " + address.getKey().getHostAddress());
 
-			primula.agent.util.DHTutil.removeAgentIP(agentID);
+			primula.agent.util.DHTutil.setMigratingAgentIP(agentID);
 
 			RegistarHistory(IPAddress.myIPAddress);
 			AgentAPI.migration(address, this);
@@ -272,6 +277,7 @@ public abstract class AbstractAgent extends SystemResource
 		String myname = this.getAgentName();
 		clock = ClockSpeed.getClockSpeed();
 		MemoryMeasure mm = new MemoryMeasure();
+		primula.agent.util.DHTutil.removeAgentIP(agentID);
 
 		if (!DHTutil.containsSpec(myname)) {
 			ed = System.currentTimeMillis();
@@ -314,20 +320,15 @@ public abstract class AbstractAgent extends SystemResource
 		long now = System.nanoTime();
 		long interval = Scheduler.getAgentRemigrateTime(); // 3秒なら 3_000_000_000L など
 
-		// 経過時間が interval より短いなら、まだ再移動禁止
-//		if (now - previousMigrateTime < interval) {
-//		    System.out.println("hi 1 3: previous=" + previousMigrateTime + ", now=" + now);
-//		    return;
-//		}
 
 		// ここまで来たら移動OKなので、今回を「前回移動」に更新
-		info.setPreviousMigrateTime(now);
 		
 		if (!ContinuationFlag) {
 			ContinuationFlag = true;
 
 		}
-			info.setPreviousMigrateTime(System.nanoTime());
+		migrateCount ++;
+		migrateStartTime = System.currentTimeMillis();
 			Continuation.suspend();
 
 	}

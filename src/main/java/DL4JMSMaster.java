@@ -116,7 +116,7 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
                  continue;
              }
 
-             AbstractAgent agent = (AbstractAgent) agentInstance;
+            AbstractAgent agent = (AbstractAgent) agentInstance;
             DL4JMSSlave slave =  (DL4JMSSlave) agent;
             slave.setParentId(getAgentID());
             slave.setMasterIp(IPAddress.myIPAddress);

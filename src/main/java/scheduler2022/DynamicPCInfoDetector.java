@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 
+import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.agent.AgentInstanceInfo;
+import scheduler2022.util.DHTutil;
 
 /**
  * 動的な PC 情報（DynamicPCInfo）を一定期間貯めておき、
@@ -19,15 +21,13 @@ import primula.api.core.agent.AgentInstanceInfo;
 public class DynamicPCInfoDetector {
 
     // 解析に使う時間など、しきい値群（必要になったら setter などで外から変えられるようにしても良い）
-    private long analyzeTime = 5000;
+    private long analyzeTime = 10000;
     private int cpuPerfThreshold = 2000;
     private double cpuProcThreshold = 4;
-    private long heapMemoryThreshold = 500;
-    private double realMemoryThreshold = 0.3;
-    private double nonHeapMemoryThreshold = 0.04; // 現状は未使用。Non-Heap 判定を加えたくなったら利用する想定。
-    private int gcCountThreshold = 5;
-    private int gpuPerfThreshold = 4000;
-    private int gpuMemThreshold = 2000;
+    private long heapMemoryThreshold = 1000;
+    private int gcCountThreshold = 10;
+    private int gpuPerfThreshold = 2000;
+    private int gpuMemThreshold = 1000;
     private double netThresholdMbps = 2000000;
     
 
@@ -153,10 +153,7 @@ public class DynamicPCInfoDetector {
         private int cpuPerfChange;
         private double cpuProcChange;
         private int gcCountChange;
-        private long memoryChange;
         private long heapMemoryChange;
-        private long nonHeapMemoryChange; // 現状は集計していないが、拡張用のフックとして残しておく。
-        private long realMemoryChange;
         private int gpuPerfChange;
         private int gpuMemChange;
         private double netUpChangeMbps;
@@ -201,22 +198,11 @@ public class DynamicPCInfoDetector {
             long beforeHeap = bef.heap / bef.count;
             long afterHeap = aft.heap / aft.count;
             this.heapMemoryChange = afterHeap - beforeHeap;
-            this.memoryChange = this.heapMemoryChange;
-
-            long beforeReal = bef.real / bef.count;
-            long afterReal = aft.real / aft.count;
-            this.realMemoryChange = beforeReal - afterReal;
-
-            // Non-Heap は今はしきい値判定に使っていないが、必要ならここで hasChangeMemory に組み込める
-            // long beforeNonHeap = bef.nonHeap / bef.count;
-            // long afterNonHeap  = aft.nonHeap / aft.count;
-            // this.nonHeapMemoryChange = afterNonHeap - beforeNonHeap;
 
             boolean heap = (heapMemoryChange / 1024 / 1024) >= heapMemoryThreshold;
             boolean gc = this.gcCountChange >= gcCountThreshold;
-            boolean real = this.realMemoryChange >= realMemoryThreshold * 1024 * 1024 * 1024;
 
-            this.hasChangeMemory = heap || gc || real;
+            this.hasChangeMemory = heap || gc;
 
             // ===== GPU =====
             int beforeGPUPerf = bef.gpuPerf / bef.count;
@@ -269,17 +255,12 @@ public class DynamicPCInfoDetector {
 
             // ---- メモリ（総合 / 内訳）----
             if (this.hasChangeMemory) {
-                // 既存の「メモリ負荷」指標（とりあえず HeapChange を代表値に）
-                info.recordMemoryChange(memoryChange, this.timeStamp);
 
                 // 内訳も記録
                 info.recordHeapChange(heapMemoryChange, this.timeStamp);
-                info.recordRealMemoryChange(realMemoryChange, this.timeStamp);
                 info.recordGCCountChange(gcCountChange, this.timeStamp);
             } else {
-                info.recordMemoryChange(0L, this.timeStamp);
                 info.recordHeapChange(0L, this.timeStamp);
-                info.recordRealMemoryChange(0L, this.timeStamp);
                 info.recordGCCountChange(0, this.timeStamp);
             }
 
@@ -303,6 +284,14 @@ public class DynamicPCInfoDetector {
             }
 
             Scheduler.agentInfo.put(id, info);
+            AgentClassInfo classInfo;
+            if(DHTutil.containsAgent(info.getAgentName())) {
+            	classInfo = DHTutil.getAgentInfo(info.getAgentName());
+            }else {
+            	classInfo = new AgentClassInfo(info.getAgentName());
+            }
+            DHTutil.setAgentInfo(info.getAgentName(), classInfo);
+            
         }
 
         /**
@@ -322,9 +311,6 @@ public class DynamicPCInfoDetector {
             double heapChangeMB = heapMemoryChange / 1024.0 / 1024.0;
             boolean heapFlag = heapChangeMB >= heapMemoryThreshold;
 
-            double realChangeGB = realMemoryChange / (1024.0 * 1024.0 * 1024.0);
-            boolean realFlag = realMemoryChange >= realMemoryThreshold * 1024 * 1024 * 1024;
-
             boolean gcFlag = gcCountChange >= gcCountThreshold;
 
             System.out.println("\nMemory:");
@@ -334,11 +320,6 @@ public class DynamicPCInfoDetector {
                     heapFlag ? "⚠️ Significant" : "OK"
             );
 
-            System.out.printf("  Real Memory Change (HostAvailable): %.2f GB (Threshold: %.2f GB) -> %s%n",
-                    realChangeGB,
-                    realMemoryThreshold,
-                    realFlag ? "⚠️ Significant" : "OK"
-            );
 
             System.out.println("\nGC:");
             System.out.printf("  GC Count Change: %d (Threshold: %d) -> %s%n",
@@ -377,8 +358,6 @@ public class DynamicPCInfoDetector {
         int cpuPerf;
         double cpuProc;
         long heap;
-        long real;
-        long nonHeap;
         int gcCount;
         int gpuPerf;
         int gpuMem;
@@ -403,8 +382,6 @@ public class DynamicPCInfoDetector {
             agg.cpuProc += dpi.CPU.ProcessCpuLoad * 100.0;
             // --- Memory ---
             agg.heap += dpi.Memory.JvmHeapUsed;
-            agg.real += dpi.Memory.HostAvailableBytes;
-            agg.nonHeap += dpi.Memory.JvmNonHeapUsed;
             agg.gcCount += dpi.GCStats.gcCountByJFR;
 
             // --- GPU ---

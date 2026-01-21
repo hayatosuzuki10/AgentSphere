@@ -68,6 +68,9 @@ public class demo extends AbstractCommand {
     public static Map<String, DynamicPCInfo> Min = new HashMap<>();
     public static Map<String, StaticPCInfo> staticPCInfos = new HashMap<>();
 
+
+    public static String strategy;
+    
     private static class DemoConfig {
         int dl4jRounds = 5;
         int sortRounds = 20;
@@ -132,7 +135,7 @@ public class demo extends AbstractCommand {
     );
 
     /** demoが待つ最大時間（安全弁） */
-    private static final long DEMO_TIMEOUT_MS = 30 * 60 * 1000L; // 30分
+    private static final long DEMO_TIMEOUT_MS = 60 * 60 * 1000L; // 1hours
 
     /** Masterが終了時に呼ぶ：結果通知（おすすめ） */
     public static void reportMasterFinished(String masterAgentId, String resultText) {
@@ -197,6 +200,8 @@ public class demo extends AbstractCommand {
 
         List<Object> resultList = new ArrayList<>();
         List<AbstractAgent> masters = new ArrayList<>();
+        
+        strategy = Scheduler.getStrategy().getClass().getName();
 
         // ---------- 実験対象IPの取得（DHTベース） ----------
         Set<String> currentIPs = DHTutil.getAllSuvivalIPaddresses();
@@ -426,7 +431,8 @@ public class demo extends AbstractCommand {
         sb.append("========== Thesis Demo Result ==========\n");
         sb.append("StartTime : ").append(sdf.format(new Date(startTime)))
           .append(" , EndTime : ").append(sdf.format(new Date(endTime))).append("\n");
-        sb.append("ElapsedTime : ").append(elapsed).append(" ms\n\n");
+        sb.append("ElapsedTime : ").append(elapsed).append(" ms\n");
+        sb.append("Strategy : ").append(strategy).append("\n\n");
 
         sb.append("---- Masters ----\n");
         sb.append("Expected : ").append(expectedMasters).append("\n");

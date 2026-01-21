@@ -39,6 +39,8 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
     private volatile boolean running = true;
     private volatile boolean inTraining = false;
     private volatile boolean canMigrate = false;
+    private volatile boolean finish = false;
+    
 
     private final int batchSize = 32;
     private final int localEpochs = 1;
@@ -78,12 +80,21 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
         loaded = true;
 
         while (running) {
+        	
+        	if(finish)	break;
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
 
             if (canMigrate && !inTraining) {
                 System.out.println("[DL4JSlave][MIGRATE] START from=" + IPAddress.myIPAddress);
                 canMigrate = false;
-
+                localData = null;
+                loaded = false;
+                try {
+                    MessageAPI.removeMessageListener(this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return;
+                }
                 String dest = Scheduler.getNextDestination(this);
                 migrate(dest);
                 try {
@@ -92,6 +103,8 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
                     e.printStackTrace();
                     return;
                 }
+                loadLocalTrainingData();
+                loaded = true;
 
                 System.out.println("[DL4JSlave][MIGRATE] RESUMED at=" + IPAddress.myIPAddress);
             }
@@ -211,9 +224,10 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
             System.out.println("[DL4JSlave][ROUND] COMPLETE round=" + round
                     + " totalMs=" + totalMs);
 
-            if (round >= totalRounds - 1) {
+            if (round > totalRounds - 1) {
+            	finish = true;
                 System.out.println("[DL4JSlave][STOP] finished all rounds "
-                        + round + "/" + totalRounds);
+                        + round + "/" + totalRounds + "finish flag = " + finish);
                 running = false;
                 canMigrate = false;
             } else {

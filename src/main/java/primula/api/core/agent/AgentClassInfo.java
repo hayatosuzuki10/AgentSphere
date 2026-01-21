@@ -17,27 +17,24 @@ public class AgentClassInfo implements Serializable {
 
     private int cpuChange = 5000;
     private int gpuChange = 5000;
-    private long memoryChange = 5000;
     private long networkUpChange = 5000;
     private long networkDownChange = 5000;
 
     private long heapChange = 0;
-    private long realMemoryChange = 0;
     private int gcCountChange = 0;
 
-    private double migrateTime;
+    private double migrateTime = 0;
 
     // ===============================
     // 記録用
     // ===============================
     private final Map<Long, Integer> cpuChangeRecords = new HashMap<>();
     private final Map<Long, Integer> gpuChangeRecords = new HashMap<>();
-    private final Map<Long, Long> memoryChangeRecords = new HashMap<>();
     private final Map<Long, Long> networkUpChangeRecords = new HashMap<>();
     private final Map<Long, Long> networkDownChangeRecords = new HashMap<>();
     private final Map<Long, Long> heapChangeRecords = new HashMap<>();
-    private final Map<Long, Long> realMemoryChangeRecords = new HashMap<>();
     private final Map<Long, Integer> gcCountChangeRecords = new HashMap<>();
+    private final Map<Long, Long> migrateTimeRecords = new HashMap<>();
 
     // ===============================
     // Setter / Getter
@@ -73,13 +70,6 @@ public class AgentClassInfo implements Serializable {
         recordGPUChange(gpuChange, System.currentTimeMillis());
     }
 
-    public long getMemoryChange() {
-        return memoryChange;
-    }
-
-    public void setMemoryChange(long memoryChange) {
-        recordMemoryChange(memoryChange, System.currentTimeMillis());
-    }
 
     public long getNetworkUpChange() {
         return networkUpChange;
@@ -105,13 +95,7 @@ public class AgentClassInfo implements Serializable {
         recordHeapChange(heapChange, System.currentTimeMillis());
     }
 
-    public long getRealMemoryChange() {
-        return realMemoryChange;
-    }
 
-    public void setRealMemoryChange(long realMemoryChange) {
-        recordRealMemoryChange(realMemoryChange, System.currentTimeMillis());
-    }
 
     public int getGCCountChange() {
         return gcCountChange;
@@ -125,8 +109,8 @@ public class AgentClassInfo implements Serializable {
         return migrateTime;
     }
 
-    public void setMigrateTime(double migrateTime) {
-        this.migrateTime = migrateTime;
+    public void setMigrateTime(long migrateTime) {
+        recordMigrateTime(migrateTime);
     }
 
     // ===============================
@@ -149,13 +133,6 @@ public class AgentClassInfo implements Serializable {
         gpuChangeRecords.put(time, value);
     }
 
-    @JsonIgnore
-    private void recordMemoryChange(long value, long time) {
-        memoryChange = memoryChangeRecords.isEmpty()
-                ? value
-                : ema(memoryChange, value, Scheduler.getEmaAlpha());
-        memoryChangeRecords.put(time, value);
-    }
 
     @JsonIgnore
     private void recordNetworkUpChange(long value, long time) {
@@ -181,13 +158,6 @@ public class AgentClassInfo implements Serializable {
         heapChangeRecords.put(time, value);
     }
 
-    @JsonIgnore
-    private void recordRealMemoryChange(long value, long time) {
-        realMemoryChange = realMemoryChangeRecords.isEmpty()
-                ? value
-                : ema(realMemoryChange, value, Scheduler.getEmaAlpha());
-        realMemoryChangeRecords.put(time, value);
-    }
 
     @JsonIgnore
     private void recordGCCountChange(int value, long time) {
@@ -195,6 +165,13 @@ public class AgentClassInfo implements Serializable {
                 ? value
                 : ema(gcCountChange, value, Scheduler.getEmaAlpha());
         gcCountChangeRecords.put(time, value);
+    }
+    
+    @JsonIgnore
+    private void recordMigrateTime(long migrateTime) {
+        this.migrateTime = migrateTimeRecords.isEmpty()
+                ? migrateTime
+                : ema(this.migrateTime, migrateTime, Scheduler.getEmaAlpha());
     }
 
     // ===============================
@@ -226,11 +203,9 @@ public class AgentClassInfo implements Serializable {
                 "name='" + name + '\'' +
                 ", cpuChange=" + cpuChange +
                 ", gpuChange=" + gpuChange +
-                ", memoryChange=" + memoryChange +
                 ", networkUpChange=" + networkUpChange +
                 ", networkDownChange=" + networkDownChange +
                 ", heapChange=" + heapChange +
-                ", realMemoryChange=" + realMemoryChange +
                 ", gcCountChange=" + gcCountChange +
                 ", migrateTime=" + migrateTime +
                 '}';
