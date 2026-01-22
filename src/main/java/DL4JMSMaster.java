@@ -98,8 +98,7 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
         long totalStart = System.currentTimeMillis();
         System.out.println(getAgentID()+ "@masterAgent");
         
-        AgentClassInfo info = new AgentClassInfo(
-        		getAgentName(), 1000, 4000, 0, 0, 0, 0, 0, 10_000L, 1000 * 60 * 5);
+        AgentClassInfo info = new AgentClassInfo(getAgentName(), 1000, 4000, 0, 0, 0, 0, 1000 * 60 * 5);
         DHTutil.setAgentInfo(getAgentName(), info);
         
         try {

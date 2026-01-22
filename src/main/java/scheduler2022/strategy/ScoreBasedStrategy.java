@@ -67,7 +67,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             DynamicPCInfo myDyn = InformationCenter.getMyDPI();
             StaticPCInfo mySta = InformationCenter.getMySPI();
 
-            AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getAgentName());
+            AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
             
             if (myDyn == null|| mySta == null) {
                 return selfIP;
@@ -151,7 +151,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             if (dpi == null || dpi.Agents == null) continue;
 
             for (var agent : dpi.Agents.values()) {
-                AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.Name);
+                AgentClassInfo info = DHTutil.getAgentInfo(agent.Name);
                 if (info != null && info.getGpuChange() > 0) {
                     return true;
                 }
@@ -189,7 +189,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             DynamicPCInfo dstDpi = InformationCenter.getOtherDPI(dst);
             DynamicPCInfo myDpi  = InformationCenter.getMyDPI();
 
-            AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getClass().getName());
+            AgentClassInfo info = DHTutil.getAgentInfo(agent.getClass().getName());
 
             if (dstSpi == null || mySpi == null || dstDpi == null || myDpi == null || info == null) return;
 
@@ -365,7 +365,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             DynamicPCInfo dyn,
             StaticPCInfo sta) {
 
-    	AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getAgentName());
+    	AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
     	if (info == null) return false;
 
     	// ---- CPU ----
@@ -508,7 +508,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             StaticPCInfo sta,
             String ip) {
 
-        AgentClassInfo info = InformationCenter.getAgentClassInfo(agent.getAgentName());
+        AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
         if (info == null || dyn == null || sta == null)
             return new ScoreResult(ip, Double.NEGATIVE_INFINITY, "info/dyn/sta null for IP=" + ip);
 

@@ -71,9 +71,7 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
                 + " ip=" + IPAddress.myIPAddress
                 + " part=" + partIndex + "/" + totalParts);
 
-
-        AgentClassInfo info = new AgentClassInfo(
-        		getAgentName(), 1000, 4000, 0, 0, 0, 0, 0, 10_000L, 1000 * 60 * 5);
+        AgentClassInfo info = new AgentClassInfo(getAgentName(), 1000, 4000, 0, 0, 0, 0, 1000 * 60 * 5);
         DHTutil.setAgentInfo(getAgentName(), info);
         
         try {
