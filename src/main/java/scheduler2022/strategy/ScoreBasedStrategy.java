@@ -28,7 +28,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     private static double netWeight = 1;
     private static double ioWeight = 2;
     private static double laWeight = 4;
-    private static double conWeight = 5;
+    private static double conWeight = 15;
     private static double migTimeWeight = 3;
     private static double migSpeedWeight = 1;
     private static double migCountWeight = 5;
@@ -73,8 +73,14 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 return selfIP;
             }
 
-            ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress);
+            boolean agentNeedsGPU = info.getGpuChange() > 0;
+        	boolean clusterHasGpuAgents = checkIfGpuAgentsExist();
+        	boolean isThisGpuPc = (mySta != null && mySta.GPUs != null && !mySta.GPUs.isEmpty());
 
+            ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress);
+            if(!agentNeedsGPU && clusterHasGpuAgents && isThisGpuPc) {
+            	myScoreResult.score -= 2.0;
+            }
             for (String ip : getAliveIPs()) {
             	
                 if (ip.equals(selfIP)) continue;
@@ -82,8 +88,6 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 try {
                     DynamicPCInfo dyn = InformationCenter.getOtherDPI(ip);
                     StaticPCInfo sta = InformationCenter.getOtherSPI(ip);
-                    boolean agentNeedsGPU = info.getGpuChange() > 0;
-                	boolean clusterHasGpuAgents = checkIfGpuAgentsExist();
                 	boolean isGpuPc = (sta != null && sta.GPUs != null && !sta.GPUs.isEmpty());
 
 
@@ -95,7 +99,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                     	if (agentNeedsGPU && !isGpuPc) {
                     	    continue; // GPUが必要なのに搭載されていない → スキップ
                     	} else if (!agentNeedsGPU && clusterHasGpuAgents && isGpuPc) {
-                    	    result.score -= 1.0; // 避けられるなら避ける程度の減点
+                    	    result.score -= 2.0; // 避けられるなら避ける程度の減点
                     	}
                         if (result.score > bestResult.score) {
                             bestResult = result;
@@ -522,15 +526,9 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
         double laNorm = clamp01(dyn.LoadAverage / cores);
         double laScore = clamp01(1.0 - laNorm);
 
-        int agentNum = 0;
-        for (String ipAddress : cachedIPs) {
-            agentNum += InformationCenter.getOtherDPI(ipAddress).Agents.size();
-        }
+        
 
-        int myAgentNum = InformationCenter.getOtherDPI(ip).Agents.size();
-        double congestion = (agentNum == 0 || myAgentNum == 0)
-                ? 0
-                : clamp01((double) myAgentNum / (double) agentNum);
+        double congestion = calcCongestion(ip, dyn);
 
         DynamicPCInfo myDPI = InformationCenter.getMyDPI();
         double networkSpeedNorm = 0;
@@ -697,6 +695,24 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 	    return (readNorm + writeNorm) / 2.0;  // 平均 I/O スコア
 	}
 
+	
+	private double calcCongestion(String ip, DynamicPCInfo dynForIp) {
+	    int myAgents = (dynForIp != null && dynForIp.Agents != null)
+	            ? dynForIp.Agents.size()
+	            : 0;
+
+	    int totalAgents = 0;
+	    for (String addr : InformationCenter.getAllIPs()) {
+	        DynamicPCInfo dpi = InformationCenter.getOtherDPI(addr);
+	        if (dpi == null || dpi.Agents == null) continue;
+	        totalAgents += dpi.Agents.size();
+	    }
+
+	    if (totalAgents == 0) return 0.0;
+
+	    double ratio = (double) myAgents / (double) totalAgents; // 0〜1
+	    return clamp01(ratio);
+	}
 
     
 

@@ -97,6 +97,11 @@ public class PCInfoCollector implements Runnable {
             	updateMyDynamicPCInfo();
                 // 必要ならここで JFR の Snapshot から socketReadBytes 等を埋める
 
+
+                if(DHTutil.getStaticPCInfo(myIP) == null) {
+                	setStaticPCInfo();
+                }
+            	
                 // 2) DHT に自分の DPI を登録
                 DHTutil.setPcInfo(myIP, myDPI);
 
