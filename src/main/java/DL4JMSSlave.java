@@ -19,7 +19,6 @@ import org.nd4j.linalg.factory.Nd4j;
 
 import primula.agent.AbstractAgent;
 import primula.api.MessageAPI;
-import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.assh.command.demo;
 import primula.api.core.network.AgentAddress;
 import primula.api.core.network.message.AbstractEnvelope;
@@ -29,7 +28,6 @@ import primula.api.core.network.message.StandardEnvelope;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 import scheduler2022.Scheduler;
-import scheduler2022.util.DHTutil;
 
 public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
 
@@ -43,6 +41,16 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
     private volatile boolean canMigrate = false;
     private volatile boolean finish = false;
     
+
+    private int cpuChange = 1000;
+    private int gpuChange = 4000;
+    private long networkUpChange = 0;
+    private long networkDownChange = 0;
+    private long heapChange = 0;
+    private int gcCountChange = 0;
+    private long diskReadChange = 0;
+    private long diskWriteChange = 0;
+    private long migrateTime = 1000*60*5;
 
     private final int batchSize = 32;
     private final int localEpochs = 1;
@@ -71,9 +79,6 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
                 + " ip=" + IPAddress.myIPAddress
                 + " part=" + partIndex + "/" + totalParts);
 
-        AgentClassInfo info = new AgentClassInfo(getAgentName(), 1000, 4000, 0, 0, 0, 0, 1000 * 60 * 5);
-        DHTutil.setAgentInfo(getAgentName(), info);
-        
         try {
             MessageAPI.registerMessageListener(this);
         } catch (Exception e) {

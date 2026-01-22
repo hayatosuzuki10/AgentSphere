@@ -40,7 +40,6 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.api.MessageAPI;
-import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.agent.loader.multiloader.ChainContainer;
 import primula.api.core.agent.loader.multiloader.GhostClassLoader;
 import primula.api.core.agent.loader.multiloader.StringSelector;
@@ -52,7 +51,6 @@ import primula.api.core.network.message.StandardContentContainer;
 import primula.api.core.network.message.StandardEnvelope;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
-import scheduler2022.util.DHTutil;
 
 public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
@@ -65,6 +63,16 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
     
     private String homeIP = IPAddress.myIPAddress;
     
+
+    private int cpuChange = 1000;
+    private int gpuChange = 2000;
+    private long networkUpChange = 0;
+    private long networkDownChange = 0;
+    private long heapChange = 0;
+    private int gcCountChange = 0;
+    private long diskReadChange = 0;
+    private long diskWriteChange = 0;
+    private long migrateTime = 1000*60*5;
 
     /** スレーブクラス名 */
     private String slaveAgentClassName = "DL4JMSSlave";
@@ -98,8 +106,6 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
         long totalStart = System.currentTimeMillis();
         System.out.println(getAgentID()+ "@masterAgent");
         
-        AgentClassInfo info = new AgentClassInfo(getAgentName(), 1000, 4000, 0, 0, 0, 0, 1000 * 60 * 5);
-        DHTutil.setAgentInfo(getAgentName(), info);
         
         try {
             MessageAPI.registerMessageListener(this);

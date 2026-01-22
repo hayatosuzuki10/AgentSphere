@@ -27,7 +27,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     private static double memWeight = 3;
     private static double netWeight = 1;
     private static double ioWeight = 2;
-    private static double laWeight = 4;
+    private static double laWeight = 10;
     private static double conWeight = 15;
     private static double migTimeWeight = 3;
     private static double migSpeedWeight = 1;
@@ -541,7 +541,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
         double migratePenalty = clamp01(agent.migrateCount / 10.0);
 
         double ioScore = scoreIO(dyn); // DPIに追加されたI/Oスループットからスコア化
-        double ioPenalty = sta.hasSSD ? 0.0 : 0.5; // SSD未搭載ならペナルティ
+        double ioPenalty = sta.hasSSD ? 0.0 : 1; // SSD未搭載ならペナルティ
 
         double score =
                 (cpuScore * cpuWeight)
@@ -697,15 +697,25 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
 	
 	private double calcCongestion(String ip, DynamicPCInfo dynForIp) {
-	    int myAgents = (dynForIp != null && dynForIp.Agents != null)
-	            ? dynForIp.Agents.size()
-	            : 0;
+
+    	int myAgents = 0;
+	    if(dynForIp != null && dynForIp.Agents != null) {
+	    	for(var e: dynForIp.Agents.entrySet()) {
+	        	if(!e.getValue().Name.contains("Messenger")) {
+	        		myAgents ++;
+	        	}
+	        }
+	    }
 
 	    int totalAgents = 0;
 	    for (String addr : InformationCenter.getAllIPs()) {
 	        DynamicPCInfo dpi = InformationCenter.getOtherDPI(addr);
 	        if (dpi == null || dpi.Agents == null) continue;
-	        totalAgents += dpi.Agents.size();
+	        for(var e: dpi.Agents.entrySet()) {
+	        	if(!e.getValue().Name.contains("Messenger")) {
+	        		totalAgents ++;
+	        	}
+	        }
 	    }
 
 	    if (totalAgents == 0) return 0.0;

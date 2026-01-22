@@ -37,6 +37,18 @@ public abstract class AbstractAgent extends SystemResource
 	public double priority = 0.5;
 	public int migrateCount = 0;
 	
+
+
+    private int cpuChange = 0;
+    private int gpuChange = 0;
+    private long networkUpChange = 0;
+    private long networkDownChange = 0;
+    private long heapChange = 0;
+    private int gcCountChange = 0;
+    private long diskReadChange = 0;
+    private long diskWriteChange = 0;
+    private long migrateTime = 0;
+	
 	
     public AgentInstanceInfo getAgentInfo() {
     	return info;
@@ -161,7 +173,15 @@ public abstract class AbstractAgent extends SystemResource
 	    }
 	    AgentClassInfo classInfo = DHTutil.getAgentInfo(getAgentName());
 	    if(classInfo == null) {
-	    	classInfo = new AgentClassInfo(getAgentName());
+	    	classInfo = new AgentClassInfo(
+	    			getAgentName(),
+	    			cpuChange, gpuChange,
+	    			networkUpChange, networkDownChange,
+	    			heapChange, gcCountChange,
+	    			diskReadChange,diskWriteChange,
+	    			migrateTime
+	    			);
+	    	System.out.println("cpuChagne="+ cpuChange);
 	    	DHTutil.setAgentInfo(getAgentName(), classInfo);
 	    }
 
