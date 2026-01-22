@@ -23,7 +23,6 @@ import primula.api.core.resource.SystemResource;
 import primula.util.IPAddress;
 import primula.util.KeyValuePair;
 import scheduler2022.ClockSpeed;
-import scheduler2022.InformationCenter;
 import scheduler2022.MemoryMeasure;
 import scheduler2022.Scheduler;
 import scheduler2022.util.DHTutil;
@@ -134,7 +133,7 @@ public abstract class AbstractAgent extends SystemResource
     public void setMigrateTime() {
     	lastMigrateTime = System.currentTimeMillis() - migrateStartTime;
     	if (lastMigrateTime < 0) lastMigrateTime = 0;
-    	AgentClassInfo info = InformationCenter.getAgentClassInfo(this.getAgentName());
+    	AgentClassInfo info = DHTutil.getAgentInfo(this.getAgentName());
     	info.setMigrateTime(lastMigrateTime);
     	DHTutil.setAgentInfo(this.getAgentName(), info);
     }
@@ -174,7 +173,7 @@ public abstract class AbstractAgent extends SystemResource
 	        info.setIpAddress(IPAddress.myIPAddress);
 	        Scheduler.agentInfo.put(agentID, info);
 	    }
-	    AgentClassInfo classInfo = InformationCenter.getAgentClassInfo(getAgentName());
+	    AgentClassInfo classInfo = DHTutil.getAgentInfo(getAgentName());
 	    if(classInfo == null) {
 	    	classInfo = new AgentClassInfo(
 	                getAgentName(), cpuChange, gpuChange,

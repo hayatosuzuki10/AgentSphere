@@ -271,7 +271,7 @@ public class DynamicPCInfoDetector {
 
             AgentClassInfo classInfo;
             if (DHTutil.containsAgent(agentName)) {
-                classInfo = InformationCenter.getAgentClassInfo(agentName);
+                classInfo = DHTutil.getAgentInfo(agentName);
             } else {
                 classInfo = new AgentClassInfo(agentName);
             }
