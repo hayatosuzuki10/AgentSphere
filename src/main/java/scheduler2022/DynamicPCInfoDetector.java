@@ -255,18 +255,34 @@ public class DynamicPCInfoDetector {
          * 「変化あり」の場合だけ値を記録し、それ以外は 0 を記録する方針。
          */
         public void updateAgentInfo(String id) {
-        	
-        	
             AgentInstanceInfo info = Scheduler.agentInfo.get(id);
+            
+            if (info == null) {
+                // Agent が既に死んでいる / DHT にいないケースの保険
+                System.err.println("AgentInstanceInfo is null for id = " + id);
+                return;
+            }
+            
+            String agentName = info.getAgentName();
+            if (agentName == null) {
+                System.err.println("Agent name is null for id = " + id);
+                return;
+            }
 
             AgentClassInfo classInfo;
-            if(DHTutil.containsAgent(info.getAgentName())) {
-            	classInfo = InformationCenter.getAgentClassInfo(info.getAgentName());
-            }else {
-            	classInfo = new AgentClassInfo(info.getAgentName());
+            if (DHTutil.containsAgent(agentName)) {
+                classInfo = InformationCenter.getAgentClassInfo(agentName);
+            } else {
+                classInfo = new AgentClassInfo(agentName);
             }
-            DHTutil.setAgentInfo(info.getAgentName(), classInfo);
-            
+
+            // DHTutil内部でnullチェックがないならここでやる
+            if (classInfo == null) {
+                System.err.println("AgentClassInfo is null for name = " + agentName);
+                return;
+            }
+
+            DHTutil.setAgentInfo(agentName, classInfo);
             if (info == null) {
                 // Agent が既に死んでいる / DHT にいないケースの保険
                 return;
