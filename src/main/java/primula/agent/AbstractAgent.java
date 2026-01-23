@@ -39,15 +39,6 @@ public abstract class AbstractAgent extends SystemResource
 	
 
 
-    private int cpuChange = 0;
-    private int gpuChange = 0;
-    private long networkUpChange = 0;
-    private long networkDownChange = 0;
-    private long heapChange = 0;
-    private int gcCountChange = 0;
-    private long diskReadChange = 0;
-    private long diskWriteChange = 0;
-    private long migrateTime = 0;
 	
 	
     public AgentInstanceInfo getAgentInfo() {
@@ -171,7 +162,22 @@ public abstract class AbstractAgent extends SystemResource
 	        info.setIpAddress(IPAddress.myIPAddress);
 	        Scheduler.agentInfo.put(agentID, info);
 	    }
-	    AgentClassInfo classInfo = DHTutil.getAgentInfo(getAgentName());
+	    
+
+		info.setStartTime(System.currentTimeMillis());
+		RegistarHistory(IPAddress.myIPAddress, "initial");
+	}
+	
+
+
+	public void setAgentClassInfo(
+			int cpuChange, int gpuChange,
+			long networkUpChange, long networkDownChange,
+			long heapChange, int gcCountChange,
+			long diskReadChange, long diskWriteChange,
+			long migrateTime
+			) {
+		AgentClassInfo classInfo = DHTutil.getAgentInfo(getAgentName());
 	    if(classInfo == null) {
 	    	classInfo = new AgentClassInfo(
 	    			getAgentName(),
@@ -181,16 +187,10 @@ public abstract class AbstractAgent extends SystemResource
 	    			diskReadChange,diskWriteChange,
 	    			migrateTime
 	    			);
-	    	System.out.println("cpuChagne="+ cpuChange);
+	    	System.out.println("gpuChagne="+ gpuChange);
 	    	DHTutil.setAgentInfo(getAgentName(), classInfo);
 	    }
-
-		info.setStartTime(System.currentTimeMillis());
-		RegistarHistory(IPAddress.myIPAddress, "initial");
 	}
-	
-
-
 
 	/**
 	 * エージェントIDとして割り当てるためにユニークIDを生成する

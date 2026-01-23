@@ -64,15 +64,6 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
     private String homeIP = IPAddress.myIPAddress;
     
 
-    private int cpuChange = 1000;
-    private int gpuChange = 2000;
-    private long networkUpChange = 0;
-    private long networkDownChange = 0;
-    private long heapChange = 0;
-    private int gcCountChange = 0;
-    private long diskReadChange = 0;
-    private long diskWriteChange = 0;
-    private long migrateTime = 1000*60*5;
 
     /** スレーブクラス名 */
     private String slaveAgentClassName = "DL4JMSSlave";
@@ -103,6 +94,7 @@ public class DL4JMSMaster extends AbstractAgent implements IMessageListener {
 
     @continuable
     public void run() {
+    	setAgentClassInfo(1000, 2000, 0, 0, 0, 0, 0, 0, 1000 * 60 * 5);
         long totalStart = System.currentTimeMillis();
         System.out.println(getAgentID()+ "@masterAgent");
         

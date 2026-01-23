@@ -163,6 +163,8 @@ public class DynamicPCInfoDetector {
         private boolean hasChangeDiskWrite;
         private long diskReadChange;
         private long diskWriteChange;
+        
+        private int agentChange;
 
         public Result(String id, Queue<DynamicPCInfo> before, Queue<DynamicPCInfo> after, long timeStamp) {
 
@@ -181,16 +183,22 @@ public class DynamicPCInfoDetector {
                 this.hasChangeNetworkDown = false;
                 return;
             }
+            int beforeAgentNum = before.poll().AgentsNum;
+            int afterAgentNum = after.poll().AgentsNum;
+            agentChange = afterAgentNum - beforeAgentNum;
+            if(agentChange == 0) {
+            	agentChange = 1;
+            }
 
             // ===== CPU =====
             int beforeCPUPerf = bef.cpuPerf / bef.count;
             int afterCPUPerf = aft.cpuPerf / aft.count;
-            this.cpuPerfChange = afterCPUPerf - beforeCPUPerf;
+            this.cpuPerfChange = (afterCPUPerf - beforeCPUPerf) / agentChange;
             boolean cpuPerf = this.cpuPerfChange >= cpuPerfThreshold;
 
             double beforeCPUProc = bef.cpuProc / bef.count;
             double afterCPUProc = aft.cpuProc / aft.count;
-            this.cpuProcChange = afterCPUProc - beforeCPUProc;
+            this.cpuProcChange = (afterCPUProc - beforeCPUProc) / agentChange;
             boolean cpuProc = this.cpuProcChange >= cpuProcThreshold;
 
             this.hasChangeCPU = cpuPerf && cpuProc;
@@ -198,11 +206,11 @@ public class DynamicPCInfoDetector {
             // ===== Memory =====
             int beforeGC = bef.gcCount / bef.count;
             int afterGC = aft.gcCount / aft.count;
-            this.gcCountChange = afterGC - beforeGC;
+            this.gcCountChange = (afterGC - beforeGC)/agentChange;
 
             long beforeHeap = bef.heap / bef.count;
             long afterHeap = aft.heap / aft.count;
-            this.heapMemoryChange = afterHeap - beforeHeap;
+            this.heapMemoryChange = (afterHeap - beforeHeap) / agentChange;
 
             boolean heap = (heapMemoryChange / 1024 / 1024) >= heapMemoryThreshold;
             boolean gc = this.gcCountChange >= gcCountThreshold;
@@ -212,12 +220,12 @@ public class DynamicPCInfoDetector {
             // ===== GPU =====
             int beforeGPUPerf = bef.gpuPerf / bef.count;
             int afterGPUPerf = aft.gpuPerf / aft.count;
-            this.gpuPerfChange = afterGPUPerf - beforeGPUPerf;
+            this.gpuPerfChange = (afterGPUPerf - beforeGPUPerf) / agentChange;
             boolean gpuPerf = this.gpuPerfChange >= gpuPerfThreshold;
 
             int beforeGPUMem = bef.gpuMem / bef.count;
             int afterGPUMem = aft.gpuMem / aft.count;
-            this.gpuMemChange = afterGPUMem - beforeGPUMem;
+            this.gpuMemChange = (afterGPUMem - beforeGPUMem) / agentChange;
             boolean gpuMem = this.gpuMemChange >= gpuMemThreshold;
 
             this.hasChangeGPU = gpuPerf && gpuMem;
@@ -229,24 +237,24 @@ public class DynamicPCInfoDetector {
             } else {
                 double beforeUp = bef.netUp / (double) bef.count / bef.networkCardCount;
                 double afterUp = aft.netUp / (double) aft.count / aft.networkCardCount;
-                this.netUpChangeMbps = afterUp - beforeUp;
+                this.netUpChangeMbps = (afterUp - beforeUp) / agentChange;
                 this.hasChangeNetworkUp = this.netUpChangeMbps >= netThresholdMbps;
 
                 double beforeDown = bef.netDown / (double) bef.count / bef.networkCardCount;
                 double afterDown = aft.netDown / (double) aft.count / aft.networkCardCount;
-                this.netDownChangeMbps = afterDown - beforeDown;
+                this.netDownChangeMbps = (afterDown - beforeDown) / agentChange;
                 this.hasChangeNetworkDown = this.netDownChangeMbps >= netThresholdMbps;
 
             }
             
             long beforeRead  = bef.diskRead / bef.count;
             long afterRead   = aft.diskRead / aft.count;
-            this.diskReadChange = afterRead - beforeRead;
+            this.diskReadChange = (afterRead - beforeRead) / agentChange;
             this.hasChangeDiskRead = this.diskReadChange >= diskThreshold;
 
             long beforeWrite = bef.diskWrite / bef.count;
             long afterWrite  = aft.diskWrite / aft.count;
-            this.diskWriteChange = afterWrite - beforeWrite;
+            this.diskWriteChange = (afterWrite - beforeWrite) / agentChange;
             this.hasChangeDiskWrite = this.diskWriteChange >= diskThreshold;
         }
 
@@ -274,45 +282,45 @@ public class DynamicPCInfoDetector {
 
             // ---- CPU ----
             if (this.hasChangeCPU) {
-                info.recordCPUChange(cpuPerfChange, this.timeStamp);
+                info.recordCPUChange(cpuPerfChange, this.timeStamp, agentChange);
             } else {
-                info.recordCPUChange(0, this.timeStamp);
+                info.recordCPUChange(0, this.timeStamp, agentChange);
             }
 
             // ---- メモリ（総合 / 内訳）----
             if (this.hasChangeMemory) {
 
                 // 内訳も記録
-                info.recordHeapChange(heapMemoryChange, this.timeStamp);
-                info.recordGCCountChange(gcCountChange, this.timeStamp);
+                info.recordHeapChange(heapMemoryChange, this.timeStamp, agentChange);
+                info.recordGCCountChange(gcCountChange, this.timeStamp, agentChange);
             } else {
-                info.recordHeapChange(0L, this.timeStamp);
-                info.recordGCCountChange(0, this.timeStamp);
+                info.recordHeapChange(0L, this.timeStamp, agentChange);
+                info.recordGCCountChange(0, this.timeStamp, agentChange);
             }
 
             // ---- GPU ----
             if (this.hasChangeGPU) {
-                info.recordGPUChange(gpuPerfChange, timeStamp);
+                info.recordGPUChange(gpuPerfChange, timeStamp, agentChange);
             } else {
-                info.recordGPUChange(0, timeStamp);
+                info.recordGPUChange(0, timeStamp, agentChange);
             }
 
             // ---- Network ----
             if (this.hasChangeNetworkUp) {
-                info.recordNetworkUpChange((long) netUpChangeMbps, timeStamp);
+                info.recordNetworkUpChange((long) netUpChangeMbps, timeStamp, agentChange);
             } else {
-                info.recordNetworkUpChange(0L, timeStamp);
+                info.recordNetworkUpChange(0L, timeStamp, agentChange);
             }
             if (this.hasChangeNetworkDown) {
-                info.recordNetworkDownChange((long) netDownChangeMbps, timeStamp);
+                info.recordNetworkDownChange((long) netDownChangeMbps, timeStamp, agentChange);
             } else {
-                info.recordNetworkDownChange(0L, timeStamp);
+                info.recordNetworkDownChange(0L, timeStamp, agentChange);
             }
             
             if (this.hasChangeDiskRead || this.hasChangeDiskWrite) {
-                info.recordDiskIOChange(diskReadChange, diskWriteChange, timeStamp);
+                info.recordDiskIOChange(diskReadChange, diskWriteChange, timeStamp, agentChange);
             } else {
-                info.recordDiskIOChange(0L, 0L, timeStamp);
+                info.recordDiskIOChange(0L, 0L, timeStamp, agentChange);
             }
 
             Scheduler.agentInfo.put(id, info);

@@ -42,15 +42,6 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
     private volatile boolean finish = false;
     
 
-    private int cpuChange = 1000;
-    private int gpuChange = 4000;
-    private long networkUpChange = 0;
-    private long networkDownChange = 0;
-    private long heapChange = 0;
-    private int gcCountChange = 0;
-    private long diskReadChange = 0;
-    private long diskWriteChange = 0;
-    private long migrateTime = 1000*60*5;
 
     private final int batchSize = 32;
     private final int localEpochs = 1;
@@ -74,6 +65,7 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
 
     @Override
     public @continuable void run() {
+    	setAgentClassInfo(1000, 4000, 0, 0, 0, 0, 0, 0, 1000 * 60 * 5);
 
         System.out.println("[DL4JSlave][RUN] START id=" + getAgentID()
                 + " ip=" + IPAddress.myIPAddress

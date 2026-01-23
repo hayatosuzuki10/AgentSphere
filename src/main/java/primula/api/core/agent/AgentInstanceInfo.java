@@ -17,7 +17,6 @@ import primula.agent.AbstractAgent;
 import primula.api.AgentAPI;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo.Agent;
-import scheduler2022.Scheduler;
 import scheduler2022.util.DHTutil;
 
 public class AgentInstanceInfo implements Serializable{
@@ -55,11 +54,16 @@ public class AgentInstanceInfo implements Serializable{
 	    
 		
 	    @JsonIgnore
-	    public void recordCPUChange(int cpuChange, long time) {
+	    public void recordCPUChange(int cpuChange, long time, int agentChange) {
 	        if (cpuChangeRecords.isEmpty()) {
 	            this.setCpuChange(cpuChange);
 	        } else {
-	            this.setCpuChange(ema(this.getCpuChange(), cpuChange, Scheduler.getEmaAlpha()));
+	        	if(agentChange == 1) {
+	        		this.setCpuChange(ema(this.getCpuChange(), cpuChange, 0.8));
+	        	} else {
+	        		this.setCpuChange(ema(this.getCpuChange(), cpuChange, 0.2));
+	        	}
+	            
 	        }
 	        cpuChangeRecords.put(time, cpuChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
@@ -70,11 +74,16 @@ public class AgentInstanceInfo implements Serializable{
 	    }
 
 	    @JsonIgnore
-	    public void recordGPUChange(int gpuChange, long time) {
+	    public void recordGPUChange(int gpuChange, long time, int agentChange) {
 	        if (gpuChangeRecords.isEmpty()) {
 	            this.gpuChange = gpuChange;
 	        } else {
-	            this.gpuChange = ema(this.gpuChange, gpuChange, Scheduler.getEmaAlpha());
+
+	        	if(agentChange == 1) {
+		            this.gpuChange = ema(this.gpuChange, gpuChange, 0.8);
+	        	} else {
+		            this.gpuChange = ema(this.gpuChange, gpuChange, 0.2);
+	        	}
 	        }
 	        gpuChangeRecords.put(time, gpuChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
@@ -87,11 +96,15 @@ public class AgentInstanceInfo implements Serializable{
 	
 
 	    @JsonIgnore
-	    public void recordNetworkUpChange(long networkUpChange, long time) {
+	    public void recordNetworkUpChange(long networkUpChange, long time, int agentChange) {
 	        if (networkUpChangeRecords.isEmpty()) {
 	            this.networkUpChange = networkUpChange;
 	        } else {
-	            this.networkUpChange = ema(this.networkUpChange, networkUpChange, Scheduler.getEmaAlpha());
+	        	if(agentChange == 1) {
+		            this.networkUpChange = ema(this.networkUpChange, networkUpChange, 0.8);
+	        	} else {
+		            this.networkUpChange = ema(this.networkUpChange, networkUpChange, 0.2);
+	        	}
 	        }
 	        networkUpChangeRecords.put(time, networkUpChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
@@ -102,12 +115,16 @@ public class AgentInstanceInfo implements Serializable{
 	    }
 
 	    @JsonIgnore
-	    public void recordNetworkDownChange(long networkDownChange, long time) {
+	    public void recordNetworkDownChange(long networkDownChange, long time, int agentChange) {
 	        
 	        if (networkDownChangeRecords.isEmpty()) {
 	            this.networkDownChange = networkDownChange;
 	        } else {
-	            this.networkDownChange = ema(this.networkDownChange, networkDownChange, Scheduler.getEmaAlpha());
+	        	if(agentChange == 1) {
+		            this.networkDownChange = ema(this.networkDownChange, networkDownChange, 0.8);
+	        	} else {
+		            this.networkDownChange = ema(this.networkDownChange, networkDownChange, 0.2);
+	        	}
 	        }
 	        
 	        networkDownChangeRecords.put(time, networkDownChange);
@@ -119,11 +136,15 @@ public class AgentInstanceInfo implements Serializable{
 	    }
 	    
 	    @JsonIgnore
-	    public void recordHeapChange(long heapChange, long time) {
+	    public void recordHeapChange(long heapChange, long time, int agentChange) {
 	        if (heapChangeRecords.isEmpty()) {
 	            this.heapChange = heapChange;
 	        } else {
-	            this.heapChange = ema(this.heapChange, heapChange, Scheduler.getEmaAlpha());
+	        	if(agentChange == 1) {
+		            this.heapChange = ema(this.heapChange, heapChange, 0.8);
+	        	} else {
+		            this.heapChange = ema(this.heapChange, heapChange, 0.2);
+	        	}
 	        }
 	        heapChangeRecords.put(time, heapChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
@@ -137,11 +158,15 @@ public class AgentInstanceInfo implements Serializable{
 
 	    // ★ 追加：GC 回数差分
 	    @JsonIgnore
-	    public void recordGCCountChange(int gcCountChange, long time) {
+	    public void recordGCCountChange(int gcCountChange, long time, int agentChange) {
 	        if (gcCountChangeRecords.isEmpty()) {
 	            this.gcCountChange = gcCountChange;
 	        } else {
-	            this.gcCountChange = ema(this.gcCountChange, gcCountChange, Scheduler.getEmaAlpha());
+	        	if(agentChange == 1) {
+		            this.gcCountChange = ema(this.gcCountChange, gcCountChange, 0.8);
+	        	} else {
+		            this.gcCountChange = ema(this.gcCountChange, gcCountChange, 0.2);
+	        	}
 	        }
 	        gcCountChangeRecords.put(time, gcCountChange);
 	        AgentClassInfo info = DHTutil.getAgentInfo(this.name);
@@ -152,12 +177,16 @@ public class AgentInstanceInfo implements Serializable{
 	    }
 	    
 	    @JsonIgnore
-	    public void recordDiskIOChange(long read, long write, long time) {
+	    public void recordDiskIOChange(long read, long write, long time, int agentChange) {
 	        // ---- Read ----
 	        if (diskReadChangeRecords.isEmpty()) {
 	            this.diskReadChange = read;
 	        } else {
-	            this.diskReadChange = ema(this.diskReadChange, read, Scheduler.getEmaAlpha());
+	        	if(agentChange == 1) {
+		            this.diskReadChange = ema(this.diskReadChange, read, 0.8);
+	        	} else {
+		            this.diskReadChange = ema(this.diskReadChange, read, 0.2);
+	        	}
 	        }
 	        diskReadChangeRecords.put(time, read);
 
@@ -165,7 +194,11 @@ public class AgentInstanceInfo implements Serializable{
 	        if (diskWriteChangeRecords.isEmpty()) {
 	            this.diskWriteChange = write;
 	        } else {
-	            this.diskWriteChange = ema(this.diskWriteChange, write, Scheduler.getEmaAlpha());
+	        	if(agentChange == 1) {
+		            this.diskWriteChange = ema(this.diskWriteChange, write, 0.8);
+	        	} else {
+		            this.diskWriteChange = ema(this.diskWriteChange, write, 0.2);
+	        	}
 	        }
 	        diskWriteChangeRecords.put(time, write);
 
