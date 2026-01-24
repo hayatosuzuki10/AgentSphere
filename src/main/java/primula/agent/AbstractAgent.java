@@ -123,7 +123,7 @@ public abstract class AbstractAgent extends SystemResource
     	lastMigrateTime = System.currentTimeMillis() - migrateStartTime;
     	if (lastMigrateTime < 0) lastMigrateTime = 0;
     	AgentClassInfo info = DHTutil.getAgentInfo(this.getAgentName());
-    	info.setMigrateTime(lastMigrateTime);
+    	info.setMigrateTime(lastMigrateTime, true);
     	DHTutil.setAgentInfo(this.getAgentName(), info);
     }
 	

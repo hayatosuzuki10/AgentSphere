@@ -8,6 +8,7 @@ import java.util.Queue;
 
 import primula.api.core.agent.AgentClassInfo;
 import primula.api.core.agent.AgentInstanceInfo;
+import primula.util.IPAddress;
 import scheduler2022.util.DHTutil;
 
 /**
@@ -273,7 +274,6 @@ public class DynamicPCInfoDetector {
             }else {
             	classInfo = new AgentClassInfo(info.getAgentName());
             }
-            DHTutil.setAgentInfo(info.getAgentName(), classInfo);
             
             if (info == null) {
                 // Agent が既に死んでいる / DHT にいないケースの保険
@@ -322,8 +322,61 @@ public class DynamicPCInfoDetector {
             } else {
                 info.recordDiskIOChange(0L, 0L, timeStamp, agentChange);
             }
+            
+            if (classInfo == null) {
+                // Agent が既に死んでいる / DHT にいないケースの保険
+                return;
+            }
+
+            // ---- CPU ----
+            if (this.hasChangeCPU) {
+                classInfo.setCpuChange(cpuPerfChange, agentChange == 1);
+            } else {
+                classInfo.setCpuChange(0, agentChange == 1);
+            }
+
+            // ---- メモリ（総合 / 内訳）----
+            if (this.hasChangeMemory) {
+
+                // 内訳も記録
+                classInfo.setHeapChange(heapMemoryChange, agentChange == 1);
+                classInfo.setGCCountChange(gcCountChange, agentChange == 1);
+            } else {
+                classInfo.setHeapChange(0L, agentChange == 1);
+                classInfo.setGCCountChange(0, agentChange == 1);
+            }
+
+            // ---- GPU ----
+            if (this.hasChangeGPU) {
+                classInfo.setGpuChange(gpuPerfChange, agentChange == 1);
+            } else {
+                classInfo.setGpuChange(0, agentChange == 1);
+            }
+
+            // ---- Network ----
+            if (this.hasChangeNetworkUp) {
+                classInfo.setNetworkUpChange((long) netUpChangeMbps, agentChange == 1);
+            } else {
+                classInfo.setNetworkUpChange(0L, agentChange == 1);
+            }
+            if (this.hasChangeNetworkDown) {
+                classInfo.setNetworkDownChange((long) netDownChangeMbps, agentChange == 1);
+            } else {
+                classInfo.setNetworkDownChange(0L, agentChange == 1);
+            }
+            
+            if (this.hasChangeDiskRead || this.hasChangeDiskWrite) {
+                classInfo.setDiskReadChange(diskReadChange, agentChange == 1);
+                classInfo.setDiskWriteChange(diskReadChange, agentChange == 1);
+            } else {
+                classInfo.setDiskReadChange(0L, agentChange == 1);
+                classInfo.setDiskWriteChange(0L, agentChange == 1);
+            }
 
             Scheduler.agentInfo.put(id, info);
+
+            DHTutil.setAgentInfo(info.getAgentName(), classInfo);
+            DHTutil.setCondition(IPAddress.myIPAddress, true);
             
         }
 

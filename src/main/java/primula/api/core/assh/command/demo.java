@@ -72,9 +72,9 @@ public class demo extends AbstractCommand {
     public static String strategy;
     
     private static class DemoConfig {
-        int dl4jRounds = 5;
+        int dl4jRounds = 10;
         int sortRounds = 20;
-        String tspFile = "others/tsp16.txt"; // デフォルト
+        String tspFile = "others/tsp17.txt"; // デフォルト
 
         @Override public String toString(){
             return "DemoConfig{dl4jRounds=" + dl4jRounds

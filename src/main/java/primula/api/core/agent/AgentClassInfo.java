@@ -6,8 +6,6 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import scheduler2022.Scheduler;
-
 public class AgentClassInfo implements Serializable {
 
     private String name;
@@ -24,7 +22,15 @@ public class AgentClassInfo implements Serializable {
     private long diskWriteChange = 0;
 
     private long migrateTime = 0;
+    
+    private int measureCount  = 0;
+    private long measureTime = System.currentTimeMillis();
 
+    private final double accurateLearning = 0.8;
+    private final double unAccurateLearning = 0.2;
+    private final int unAccurateCount = 5;
+    private final long measureTimeExpired = 1000 * 60 * 3;
+    
     // ===============================
     // Records
     // ===============================
@@ -77,42 +83,58 @@ public class AgentClassInfo implements Serializable {
     public String getName() { return name; }
 
     public void setName(String name) { this.name = name; }
+    
+    public boolean isAccurate() {
+    	return measureCount < unAccurateCount;
+    }
+    
+    public boolean isExpired() {
+    	return System.currentTimeMillis() - measureTime > measureTimeExpired;
+    }
 
     public int getCpuChange() { return cpuChange; }
 
-    public void setCpuChange(int val) { recordCPUChange(val, now()); }
+    public void setCpuChange(int val, boolean isAccurate) { 
+    	recordCPUChange(val, now(), isAccurate);
+    	if(isAccurate) {
+    		measureCount = 0;
+    		measureTime = System.currentTimeMillis();
+    	} else {
+    		measureCount ++;
+    	}
+    	}
 
     public int getGpuChange() { return gpuChange; }
 
-    public void setGpuChange(int val) { recordGPUChange(val, now()); }
+    public void setGpuChange(int val, boolean isAccurate) { recordGPUChange(val, now(), isAccurate); }
 
     public long getNetworkUpChange() { return networkUpChange; }
 
-    public void setNetworkUpChange(long val) { recordNetworkUpChange(val, now()); }
+    public void setNetworkUpChange(long val, boolean isAccurate) { recordNetworkUpChange(val, now(), isAccurate); }
 
     public long getNetworkDownChange() { return networkDownChange; }
 
-    public void setNetworkDownChange(long val) { recordNetworkDownChange(val, now()); }
+    public void setNetworkDownChange(long val, boolean isAccurate) { recordNetworkDownChange(val, now(), isAccurate); }
 
     public long getHeapChange() { return heapChange; }
 
-    public void setHeapChange(long val) { recordHeapChange(val, now()); }
+    public void setHeapChange(long val, boolean isAccurate) { recordHeapChange(val, now(), isAccurate); }
 
     public int getGCCountChange() { return gcCountChange; }
 
-    public void setGCCountChange(int val) { recordGCCountChange(val, now()); }
+    public void setGCCountChange(int val, boolean isAccurate) { recordGCCountChange(val, now(), isAccurate); }
 
     public long getDiskReadChange() { return diskReadChange; }
 
-    public void setDiskReadChange(long val) { recordDiskReadChange(val, now()); }
+    public void setDiskReadChange(long val, boolean isAccurate) { recordDiskReadChange(val, now(), isAccurate); }
 
     public long getDiskWriteChange() { return diskWriteChange; }
 
-    public void setDiskWriteChange(long val) { recordDiskWriteChange(val, now()); }
+    public void setDiskWriteChange(long val, boolean isAccurate) { recordDiskWriteChange(val, now(), isAccurate); }
 
     public double getMigrateTime() { return migrateTime; }
 
-    public void setMigrateTime(long val) { recordMigrateTime(val, now()); }
+    public void setMigrateTime(long val, boolean isAccurate) { recordMigrateTime(val, now(), isAccurate); }
 
     private static long now() { return System.currentTimeMillis(); }
 
@@ -120,48 +142,89 @@ public class AgentClassInfo implements Serializable {
     // Record 系（EMA + Records）
     // ===============================
 
-    @JsonIgnore private void recordCPUChange(int v, long t) {
-        cpuChange = cpuChangeRecords.isEmpty() ? v : ema(cpuChange, v);
+    @JsonIgnore private void recordCPUChange(int v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+            cpuChange = cpuChangeRecords.isEmpty() ? v : ema(cpuChange, v, accurateLearning);
+    	}else {
+            cpuChange = cpuChangeRecords.isEmpty() ? v : ema(cpuChange, v, unAccurateLearning);
+    	}
         cpuChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordGPUChange(int v, long t) {
-        gpuChange = gpuChangeRecords.isEmpty() ? v : ema(gpuChange, v);
+    @JsonIgnore private void recordGPUChange(int v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		gpuChange = gpuChangeRecords.isEmpty() ? v : ema(gpuChange, v, accurateLearning);
+    	}else {
+    		gpuChange = gpuChangeRecords.isEmpty() ? v : ema(gpuChange, v, unAccurateLearning);
+    	}
         gpuChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordNetworkUpChange(long v, long t) {
-        networkUpChange = networkUpChangeRecords.isEmpty() ? v : ema(networkUpChange, v);
+    @JsonIgnore private void recordNetworkUpChange(long v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		networkUpChange = networkUpChangeRecords.isEmpty() ? v : ema(networkUpChange, v, accurateLearning);
+    	}else {
+    		networkUpChange = networkUpChangeRecords.isEmpty() ? v : ema(networkUpChange, v, unAccurateLearning);
+    	}
         networkUpChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordNetworkDownChange(long v, long t) {
-        networkDownChange = networkDownChangeRecords.isEmpty() ? v : ema(networkDownChange, v);
+    @JsonIgnore private void recordNetworkDownChange(long v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		networkDownChange = networkDownChangeRecords.isEmpty() ? v : ema(networkDownChange, v, accurateLearning);
+    	}else {
+    		networkDownChange = networkDownChangeRecords.isEmpty() ? v : ema(networkDownChange, v, unAccurateLearning);
+    	}
         networkDownChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordHeapChange(long v, long t) {
-        heapChange = heapChangeRecords.isEmpty() ? v : ema(heapChange, v);
+    @JsonIgnore private void recordHeapChange(long v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		heapChange = heapChangeRecords.isEmpty() ? v : ema(heapChange, v, accurateLearning);
+    	}else {
+    		heapChange = heapChangeRecords.isEmpty() ? v : ema(heapChange, v, unAccurateLearning);
+    	}
+        
         heapChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordGCCountChange(int v, long t) {
-        gcCountChange = gcCountChangeRecords.isEmpty() ? v : ema(gcCountChange, v);
+    @JsonIgnore private void recordGCCountChange(int v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		gcCountChange = gcCountChangeRecords.isEmpty() ? v : ema(gcCountChange, v, accurateLearning);
+    	}else {
+    		gcCountChange = gcCountChangeRecords.isEmpty() ? v : ema(gcCountChange, v, unAccurateLearning);
+    	}
+        
         gcCountChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordDiskReadChange(long v, long t) {
-        diskReadChange = diskReadChangeRecords.isEmpty() ? v : ema(diskReadChange, v);
+    @JsonIgnore private void recordDiskReadChange(long v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		diskReadChange = diskReadChangeRecords.isEmpty() ? v : ema(diskReadChange, v, accurateLearning);
+    	}else {
+    		diskReadChange = diskReadChangeRecords.isEmpty() ? v : ema(diskReadChange, v, unAccurateLearning);
+    	}
+        
         diskReadChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordDiskWriteChange(long v, long t) {
-        diskWriteChange = diskWriteChangeRecords.isEmpty() ? v : ema(diskWriteChange, v);
+    @JsonIgnore private void recordDiskWriteChange(long v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		diskWriteChange = diskWriteChangeRecords.isEmpty() ? v : ema(diskWriteChange, v, accurateLearning);
+    	}else {
+    		diskWriteChange = diskWriteChangeRecords.isEmpty() ? v : ema(diskWriteChange, v, unAccurateLearning);
+    	}
+        
         diskWriteChangeRecords.put(t, v);
     }
 
-    @JsonIgnore private void recordMigrateTime(long v, long t) {
-        migrateTime = migrateTimeRecords.isEmpty() ? v : ema(migrateTime, v);
+    @JsonIgnore private void recordMigrateTime(long v, long t, boolean isAccurate) {
+    	if(isAccurate) {
+    		migrateTime = migrateTimeRecords.isEmpty() ? v : ema(migrateTime, v, accurateLearning);
+    	}else {
+    		migrateTime = migrateTimeRecords.isEmpty() ? v : ema(migrateTime, v, unAccurateLearning);
+    	}
+        
         migrateTimeRecords.put(t, v);
     }
 
@@ -169,16 +232,19 @@ public class AgentClassInfo implements Serializable {
     // EMA Utils
     // ===============================
 
-    @JsonIgnore private static double ema(double oldVal, double newVal) {
-        return Scheduler.getEmaAlpha() * newVal + (1 - Scheduler.getEmaAlpha()) * oldVal;
+    @JsonIgnore
+    private static double ema(double oldVal, double newVal, double alpha) {
+        return alpha * newVal + (1 - alpha) * oldVal;
     }
-
-    @JsonIgnore private static long ema(long oldVal, long newVal) {
-        return Math.round(ema((double) oldVal, (double) newVal));
+	
+	@JsonIgnore
+    private static long ema(long oldVal, long newVal, double alpha) {
+        return Math.round(alpha * newVal + (1 - alpha) * oldVal);
     }
-
-    @JsonIgnore private static int ema(int oldVal, int newVal) {
-        return (int) Math.round(ema((double) oldVal, (double) newVal));
+	
+	@JsonIgnore
+    private static int ema(int oldVal, int newVal, double alpha) {
+        return (int) Math.round(alpha * newVal + (1 - alpha) * oldVal);
     }
 
     // ===============================

@@ -68,6 +68,10 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             StaticPCInfo mySta = InformationCenter.getMySPI();
 
             AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
+            if(info == null) {
+            	info = new AgentClassInfo(agent.getAgentName());
+            }
+            
             
             if (myDyn == null|| mySta == null) {
                 return selfIP;
@@ -84,6 +88,9 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             for (String ip : getAliveIPs()) {
             	
                 if (ip.equals(selfIP)) continue;
+                
+                if(!DHTutil.canAccept(ip))
+                	continue;
 
                 try {
                     DynamicPCInfo dyn = InformationCenter.getOtherDPI(ip);
@@ -124,6 +131,10 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             if (bestResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
                 setTemporaryPrediction(agent, bestResult.ip);
                 agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
+                if(InformationCenter.getOtherDPI(bestResult.ip).AgentsNum == 0) {
+                	DHTutil.setCondition(bestResult.ip, false);
+                
+                }
                 return bestResult.ip;
             } else if(notBadResult.score > myScoreResult.score + Scheduler.scoreThreshold){
             	setTemporaryPrediction(agent, notBadResult.ip);
@@ -167,6 +178,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     private boolean isOutOfMemory(DynamicPCInfo dpi) {
     	return dpi.Memory.JvmHeapUsed / dpi.Memory.JvmHeapMax > MEMORY_LIMIT;
     }
+    
 
     private Set<String> getAliveIPs() {
         long now = System.currentTimeMillis();
@@ -510,7 +522,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             AbstractAgent agent,
             DynamicPCInfo dyn,
             StaticPCInfo sta,
-            String ip) {
+            String ip
+            ) {
 
         AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
         if (info == null || dyn == null || sta == null)

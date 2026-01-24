@@ -104,6 +104,11 @@ public class DHTutil {
 	    return val != null && val; // null 安全
 	}
 	
+	public static void setCondition(String key ,boolean canAccept) {
+
+	    DHTChordAPI.put(keyCode + AcceptableCode + key, canAccept);
+	}
+	
 	public static AgentClassInfo getAgentInfo(String key) {
 		return (AgentClassInfo) DHTChordAPI.get(keyCode + AgentCode + key);
 	}
