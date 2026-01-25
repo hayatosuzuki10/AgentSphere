@@ -63,7 +63,9 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             String selfIP = IPAddress.myIPAddress;
             ScoreResult bestResult = new ScoreResult(selfIP, Double.NEGATIVE_INFINITY, "negative");
             ScoreResult notBadResult = new ScoreResult(selfIP, Double.NEGATIVE_INFINITY, "negative");
-
+            ScoreResult analyzingResult = new ScoreResult(selfIP, Double.NEGATIVE_INFINITY, "negative");
+            
+            
             DynamicPCInfo myDyn = InformationCenter.getMyDPI();
             StaticPCInfo mySta = InformationCenter.getMySPI();
 
@@ -85,6 +87,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             if(!agentNeedsGPU && clusterHasGpuAgents && isThisGpuPc) {
             	myScoreResult.score -= 2.0;
             }
+            boolean needAnalyze = !info.isAccurate() || info.isExpired();
             for (String ip : getAliveIPs()) {
             	
                 if (ip.equals(selfIP)) continue;
@@ -97,7 +100,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                     StaticPCInfo sta = InformationCenter.getOtherSPI(ip);
                 	boolean isGpuPc = (sta != null && sta.GPUs != null && !sta.GPUs.isEmpty());
 
-
+                	
                     if (hasMeetDemand(agent, dyn, sta)) {
                     	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
                     	
@@ -107,6 +110,9 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                     	    continue; // GPUが必要なのに搭載されていない → スキップ
                     	} else if (!agentNeedsGPU && clusterHasGpuAgents && isGpuPc) {
                     	    result.score -= 2.0; // 避けられるなら避ける程度の減点
+                    	}
+                    	if(needAnalyze && isGpuPc && result.score > analyzingResult.score) {
+                    		analyzingResult = result;
                     	}
                         if (result.score > bestResult.score) {
                             bestResult = result;
@@ -128,8 +134,14 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                     System.out.println("[SCORE-SKIP] " + ip + " " + e.getClass().getSimpleName());
                 }
             }
-            if (bestResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
-                setTemporaryPrediction(agent, bestResult.ip);
+            if(analyzingResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
+            	setTemporaryPrediction(agent, analyzingResult.ip);
+                agent.RegistarHistory(analyzingResult.ip, myScoreResult.reason + analyzingResult.reason);
+                if(InformationCenter.getOtherDPI(analyzingResult.ip).AgentsNum == 0) {
+                	DHTutil.setCondition(analyzingResult.ip, false);
+                }
+            }else if (bestResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
+            	setTemporaryPrediction(agent, bestResult.ip);
                 agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
                 if(InformationCenter.getOtherDPI(bestResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(bestResult.ip, false);
