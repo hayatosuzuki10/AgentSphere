@@ -7,15 +7,15 @@
 
 "13th Gen Intel(R) Core(TM) i7-13700" : 36691,
 
-"12th Gen Intel(R) Core(TM) i7 12700" : 30547,
+"12th Gen Intel(R) Core(TM) i7-12700" : 30547,
 
 "Intel(R) Core(TM) i7-10700 CPU @ 2.90GHz" : 10259,
 
-"9th Gen Intel(R) Core(TM) i7 9700" : 13253,
+"9th Gen Intel(R) Core(TM) i7-9700" : 13253,
 
-"8th Gen Intel(R) Core(TM) i7 8700" : 12789,
+"8th Gen Intel(R) Core(TM) i7-8700" : 12789,
 
-"6th Gen Intel(R) Core(TM) i7 6700" : 8108,
+"6th Gen Intel(R) Core(TM) i7-6700" : 8108,
 
 "Ryzen 9 4900HS" : 15022
 }

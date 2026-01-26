@@ -98,7 +98,8 @@ public class PCInfoCollector implements Runnable {
                 // 必要ならここで JFR の Snapshot から socketReadBytes 等を埋める
 
 
-                if(DHTutil.getStaticPCInfo(myIP) == null) {
+            	StaticPCInfo mySPI = DHTutil.getStaticPCInfo(myIP);
+                if(mySPI == null || mySPI.CPU.BenchMarkScore == 0) {
                 	setStaticPCInfo();
                 }
             	
