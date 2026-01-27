@@ -105,7 +105,8 @@ public class DHTutil {
 	}
 	
 	public static void setCondition(String key ,boolean canAccept) {
-
+		if(canAccept == false)
+		System.out.println("ANALYZE MODE:" + key);
 	    DHTChordAPI.put(keyCode + AcceptableCode + key, canAccept);
 	}
 	

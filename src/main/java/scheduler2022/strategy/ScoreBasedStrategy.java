@@ -27,8 +27,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
     private static double memWeight = 3;
     private static double netWeight = 1;
     private static double ioWeight = 2;
-    private static double laWeight = 10;
-    private static double conWeight = 15;
+    private static double laWeight = 5;
+    private static double conWeight = 30;
     private static double migTimeWeight = 3;
     private static double migSpeedWeight = 1;
     private static double migCountWeight = 5;

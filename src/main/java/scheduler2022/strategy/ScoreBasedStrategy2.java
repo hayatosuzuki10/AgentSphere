@@ -135,18 +135,20 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
                 }
             }
             if(analyzingResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
-            	setTemporaryPrediction(agent, analyzingResult.ip);
-                agent.RegistarHistory(analyzingResult.ip, myScoreResult.reason + analyzingResult.reason);
-                if(InformationCenter.getOtherDPI(analyzingResult.ip).AgentsNum == 0) {
+            	if(InformationCenter.getOtherDPI(analyzingResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(analyzingResult.ip, false);
                 }
+            	setTemporaryPrediction(agent, analyzingResult.ip);
+                agent.RegistarHistory(analyzingResult.ip, myScoreResult.reason + analyzingResult.reason);
+                
             }else if (bestResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
-            	setTemporaryPrediction(agent, bestResult.ip);
-                agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
-                if(InformationCenter.getOtherDPI(bestResult.ip).AgentsNum == 0) {
+            	if(InformationCenter.getOtherDPI(bestResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(bestResult.ip, false);
                 
                 }
+            	setTemporaryPrediction(agent, bestResult.ip);
+                agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
+                
                 return bestResult.ip;
             } else if(notBadResult.score > myScoreResult.score + Scheduler.scoreThreshold){
             	setTemporaryPrediction(agent, notBadResult.ip);
