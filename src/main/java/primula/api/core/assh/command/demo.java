@@ -135,7 +135,7 @@ public class demo extends AbstractCommand {
     );
 
     /** demoが待つ最大時間（安全弁） */
-    private static final long DEMO_TIMEOUT_MS = 60 * 60 * 1000L; // 1hours
+    private static final long DEMO_TIMEOUT_MS = 3 * 60 * 60 * 1000L; // 1hours
 
     /** Masterが終了時に呼ぶ：結果通知（おすすめ） */
     public static void reportMasterFinished(String masterAgentId, String resultText) {

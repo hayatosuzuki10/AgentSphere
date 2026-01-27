@@ -13,7 +13,7 @@ import scheduler2022.Scheduler;
 import scheduler2022.StaticPCInfo;
 import scheduler2022.util.DHTutil;
 
-public class ScoreBasedStrategy implements SchedulerStrategy {
+public class ScoreBasedStrategy2 implements SchedulerStrategy {
 
     private static final Object PREDICTION_LOCK = new Object();
 
@@ -539,196 +539,152 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
  
     
-    private ScoreResult calculateMatchScore(
-            AbstractAgent agent,
+    private ScoreResult calculateMatchScore(AbstractAgent agent,
             DynamicPCInfo dyn,
             StaticPCInfo sta,
-            String ip
-            ) {
+            String ip) {
 
-        AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
-        if (info == null || dyn == null || sta == null)
-            return new ScoreResult(ip, Double.NEGATIVE_INFINITY, "info/dyn/sta null for IP=" + ip);
+AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
+if (info == null || dyn == null || sta == null)
+return new ScoreResult(ip, Double.NEGATIVE_INFINITY, "NULL");
 
-        // ---- 各スコア計算 ----
-        double cpuScore = scoreCPU(info, dyn, sta);
-        double gpuScore = scoreGPU(info, dyn, sta);
-        double memScore = scoreMemory(info, dyn, sta);
-        double netScore = scoreNetworkTotal(info, dyn, sta);
+double cpu = scoreCPU(info, dyn, sta) * cpuWeight;
+double gpu = scoreGPU(info, dyn, sta) * gpuWeight;
+double mem = scoreMemory(info, dyn, sta) * memWeight;
+double net = scoreNetworkTotal(info, dyn, sta) * netWeight;
+double io  = scoreIO(info, dyn, sta) * ioWeight;
 
-        int cores = Math.max(1, sta.CPU.LogicalCore);
-        double laNorm = clamp01(dyn.LoadAverage / cores);
-        double laScore = clamp01(1.0 - laNorm);
+// 優先度 × (1 - LA/コア数)
+double priorityScore = agent.priority *
+clamp01(1.0 - (dyn.LoadAverage / Math.max(1, sta.CPU.LogicalCore)))
+* laWeight;
 
-        
+// 移動コスト（前回 + ネット遅延）
+double migrateCost = 0.0;
+DynamicPCInfo mydpi = InformationCenter.getMyDPI();
+if (mydpi != null && mydpi.NetworkSpeeds.get(ip) != null) {
+double netNorm = clamp01(mydpi.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900);
+migrateCost = info.getMigrateTime() * (1.0 - netNorm) * migTimeWeight;
+}
 
-        double congestion = calcCongestion(ip, dyn);
+double total = cpu + gpu + mem + net + io + priorityScore - migrateCost;
+String reason = String.format(
+	    "CPU=%.2f GPU=%.2f MEM=%.2f NET=%.2f IO=%.2f PRIO=%.2f MIG=%.2f => %.2f",
+	    cpu, gpu, mem, net, io, priorityScore, migrateCost, total
+	);
 
-        DynamicPCInfo myDPI = InformationCenter.getMyDPI();
-        double networkSpeedNorm = 0;
-        if (myDPI.NetworkSpeeds != null && myDPI.NetworkSpeeds.get(ip) != null) {
-            networkSpeedNorm = clamp01(myDPI.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900);
-        }
+return new ScoreResult(ip, total, reason);
+}
 
-        double slowPenalty = 1.0 - networkSpeedNorm;
-        double migrateTimeNorm = clamp01(info.getMigrateTime() / 10_000_000L);
-        double migratePenalty = clamp01(agent.migrateCount / 10.0);
-
-        double ioScore = scoreIO(dyn); // DPIに追加されたI/Oスループットからスコア化
-        double ioPenalty = sta.hasSSD ? 0.0 : 1; // SSD未搭載ならペナルティ
-
-        double score =
-                (cpuScore * cpuWeight)
-                + (gpuScore * gpuWeight)
-                + (memScore * memWeight)
-                + (netScore * netWeight)
-                + (laScore * laWeight)
-                + (ioScore * ioWeight) // IOスコアの重み（適宜調整）
-                - (congestion * conWeight)
-                - (migrateTimeNorm * migTimeWeight)
-                - (slowPenalty * migSpeedWeight)
-                - (migratePenalty * migCountWeight)
-                - (ioPenalty); // SSDでないなら固定ペナルティ
-
-        // ---- reason ログ（IP付き）----
-        StringBuilder reason = new StringBuilder();
-        reason.append("[Score] IP=").append(ip).append(" -> ")
-              .append("CPU=").append(cpuScore).append("*").append(cpuWeight).append(", ")
-              .append("GPU=").append(gpuScore).append("*").append(gpuWeight).append(", ")
-              .append("MEM=").append(memScore).append("*").append(memWeight).append(", ")
-              .append("NET=").append(netScore).append("*").append(netWeight).append(", ")
-              .append(", IO=").append(ioScore).append("*2.0")
-              .append(", hasSSD=").append(sta.hasSSD ? "✔" : "✘")
-              .append("LA=").append(laScore).append("*").append(laWeight).append(", ")
-              .append("congestion=").append(congestion).append("*").append(conWeight).append(", ")
-              .append("slowPen=").append(slowPenalty).append("*").append(migSpeedWeight).append(", ")
-              .append("migTime=").append(migrateTimeNorm).append("*").append(migTimeWeight).append(", ")
-              .append("migCount=").append(migratePenalty).append("*").append(migCountWeight)
-              .append(" => total=").append(score);
-       
-
-        return new ScoreResult(ip, score, reason.toString());
-    }
-
-    /* -------------------------
-     * CPU: dynの使用率 + info.cpuChange(要求) が bench を超えないほど高得点
-     * ------------------------- */
-    private double scoreCPU(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
-
-    	if (dyn.CPU == null || sta.CPU == null) return 0.0;
-
-    	int bench = Math.max(1, sta.CPU.BenchMarkScore);	
-    	double usedPerf = dyn.CPU.LoadPercentByMXBean * bench;
-
-    	double headroom = (bench - usedPerf) / bench; // 0..1
-    	return headroom;
-    }
+    
 
     /* -------------------------
      * GPU: 複数GPUなら「一番余裕が残るGPU」を採用
      * ------------------------- */
-    private double scoreGPU(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
-    	
+    private double scoreCPU(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
+        if (dyn.CPU == null || sta.CPU == null) return 0.0;
 
-    	int need = Math.max(0, info.getGpuChange());
-    	if (need <= 0) return 0.0;
+        double req = Math.max(0, info.getCpuChange()); // Agent要求
+        double bench = Math.max(1, sta.CPU.BenchMarkScore);
 
-    	if (dyn.GPUs == null || sta.GPUs == null || dyn.GPUs.isEmpty() || sta.GPUs.isEmpty()) {
-    		return 0;
-    	}
+        double usedRatio = clamp01(dyn.CPU.LoadPercentByMXBean); // 0〜1
+        double unused = 1.0 - usedRatio;
 
-    	double best = 0;
-
-    	for (var e : dyn.GPUs.entrySet()) {
-    		String key = e.getKey();
-    		DynamicPCInfo.GPU d = e.getValue();
-    		StaticPCInfo.GPU s = sta.GPUs.get(key);
-    		if (d == null || s == null) continue;
-    		
-    		int bench = Math.max(1, s.BenchMarkScore);
-
-    		// dyn LoadPercent (0..100) -> 使用perf換算
-    		double usedPerf = (Math.max(0, d.LoadPercent) / 100.0) * bench;
-    		double afterPerf = usedPerf + need;
-
-    		if (afterPerf > bench) continue;
-
-    		double headroom = (bench - usedPerf) / bench;
-    		double score = headroom;
-    		if (score > best) best = score;
-    	}
-
-    	return best;
+        return req * unused * bench;
     }
 
+    
+    private double scoreGPU(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
+
+        int req = Math.max(0, info.getGpuChange());
+        if (req <= 0) return 0.0;
+
+        if (dyn.GPUs == null || sta.GPUs == null) return 0.0;
+
+        double best = 0.0;
+
+        for (var e : dyn.GPUs.entrySet()) {
+            String key = e.getKey();
+            DynamicPCInfo.GPU d = e.getValue();
+            StaticPCInfo.GPU s = sta.GPUs.get(key);
+            if (d == null || s == null) continue;
+
+            double bench = Math.max(1, s.BenchMarkScore);
+            double usedRatio = clamp01(d.LoadPercent / 100.0);
+            double unused = 1.0 - usedRatio;
+
+            double score = req * unused * bench;
+            if (score > best) best = score;
+        }
+        return best;
+    }
+    
 	/* -------------------------
 	* Memory: host available を食いつぶす想定で余裕を点数化
 	* ------------------------- */
-	private double scoreMemory(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
-	
-		if (dyn.Memory == null) return 0.0;
-	
-		long total = Math.max(1L, dyn.Memory.JvmHeapCommitted);
-		long used = Math.max(0L, dyn.Memory.JvmHeapUsed);
-		long need  = Math.max(0L, info.getHeapChange());
-		
-		if (need + used > total) return 0;
-		
-		double headroom = (double) (total - used) / (double) total;
-		return headroom;
-	}
+    private double scoreMemory(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
+
+        if (dyn.Memory == null) return 0.0;
+
+        long req = Math.max(0, info.getHeapChange());
+        long free = Math.max(0, dyn.Memory.JvmHeapCommitted - dyn.Memory.JvmHeapUsed);
+
+        return (double) req * (double) free;
+    }
 
 	/* -------------------------
 	 * Network(合計): 全NICの帯域合計に対する未使用率を返す
 	 * 戻り値: 0.0 ～ 1.0（1.0 = 完全に空いている）
 	 * ------------------------- */
-	private double scoreNetworkTotal(
-	        AgentClassInfo info,
-	        DynamicPCInfo dyn,
-	        StaticPCInfo sta) {
+    private double scoreNetworkTotal(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
+        if (dyn == null || sta == null || dyn.NetworkCards == null || sta.NetworkCards == null)
+            return 0.0;
 
-	    if (dyn == null || sta == null ||
-	        dyn.NetworkCards == null || sta.NetworkCards == null) {
-	        return 0.0;
-	    }
+        long req = Math.max(0, info.getNetworkUpChange() + info.getNetworkDownChange());
 
-	    // --- 使用中帯域（合計） ---
-	    long usedUp = 0L;
-	    long usedDown = 0L;
-	    for (DynamicPCInfo.NetworkCard d : dyn.NetworkCards.values()) {
-	        if (d == null) continue;
-	        usedUp   += (d.UploadSpeed   != null ? d.UploadSpeed   : 0L);
-	        usedDown += (d.DownloadSpeed != null ? d.DownloadSpeed : 0L);
-	    }
+        long used = 0L;
+        long total = 0L;
 
-	    // --- 総帯域（合計） ---
-	    long totalBandwidth = 0L;
-	    for (StaticPCInfo.NetworkCard s : sta.NetworkCards.values()) {
-	        if (s == null) continue;
-	        if (s.Bandwidth > 0) {
-	            totalBandwidth += s.Bandwidth;
-	        }
-	    }
+        for (var d : dyn.NetworkCards.values()) {
+            if (d == null) continue;
+            used += safeLong(d.UploadSpeed) + safeLong(d.DownloadSpeed);
+        }
 
-	    if (totalBandwidth <= 0) return 0.0;
+        for (var s : sta.NetworkCards.values()) {
+            if (s == null) continue;
+            total += Math.max(0L, s.Bandwidth);
+        }
 
-	    // --- 未使用率 ---
-	    double upFreeRate   = 1.0 - clamp01((double) usedUp   / totalBandwidth);
-	    double downFreeRate = 1.0 - clamp01((double) usedDown / totalBandwidth);
+        if (total <= 0) return 0.0;
 
-	    // 上り・下りの平均未使用率
-	    return clamp01((upFreeRate + downFreeRate) / 2.0);
-	}
+        double unusedRatio = 1.0 - clamp01((double) used / (double) total);
+
+        return req * unusedRatio * total; // 重要：帯域を掛ける
+    }
 	
-	private double scoreIO(DynamicPCInfo dyn) {
-	    if (dyn == null || dyn.diskIO == null) return 0.0;
-	    
-	    double readNorm  = clamp01(dyn.diskIO.ReadSpeed  / 100_000_000.0);  // 100MB/s基準
-	    double writeNorm = clamp01(dyn.diskIO.WriteSpeed / 100_000_000.0);
+    private double scoreIO(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
 
-	    return (readNorm + writeNorm) / 2.0;  // 平均 I/O スコア
-	}
+        long readReq  = Math.max(0L, info.getDiskReadChange());
+        long writeReq = Math.max(0L, info.getDiskWriteChange());
+        long req = readReq + writeReq;
 
+        if (req <= 0) return 0.0;
+        if (dyn.diskIO == null) return 0.0;
+
+        // ディスク性能の基準値（暫定）
+        double maxRead  = sta.hasSSD ? 500_000_000.0 : 100_000_000.0;
+        double maxWrite = sta.hasSSD ? 500_000_000.0 : 100_000_000.0;
+
+        double usedReadRatio  = clamp01(dyn.diskIO.ReadSpeed  / maxRead);
+        double usedWriteRatio = clamp01(dyn.diskIO.WriteSpeed / maxWrite);
+
+        double unusedRate = 1.0 - ((usedReadRatio + usedWriteRatio) / 2.0);
+
+        double throughput = (dyn.diskIO.ReadSpeed + dyn.diskIO.WriteSpeed);
+
+        // 最終スコア
+        return req * unusedRate * throughput;
+    }
 	
 	private double calcCongestion(String ip, DynamicPCInfo dynForIp) {
 

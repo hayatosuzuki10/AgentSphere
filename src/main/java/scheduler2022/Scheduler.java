@@ -28,6 +28,7 @@ import scheduler2022.server.SchedulerMessenger;
 import scheduler2022.strategy.LoadAverageStrategy;
 import scheduler2022.strategy.SchedulerStrategy;
 import scheduler2022.strategy.ScoreBasedStrategy;
+import scheduler2022.strategy.ScoreBasedStrategy2;
 import scheduler2022.strategy.Strategy2022;
 import scheduler2022.util.DHTutil;
 import scheduler2022.util.IInfoUpdateListener;
@@ -331,6 +332,9 @@ public class Scheduler implements Runnable {
 				break;
 			case "ScoreBasedStrategy":
 				schedulerStrategy = new ScoreBasedStrategy();
+				break;
+			case "ScoreBasedStrategy2":
+				schedulerStrategy = new ScoreBasedStrategy2();
 				break;
 		}
 		
