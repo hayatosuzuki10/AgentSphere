@@ -76,7 +76,17 @@ public class SortMasterAgent extends AbstractAgent implements IMessageListener {
 
     @Override
     public void run() {
-
+    	setAgentClassInfo(
+    		    2000,         // CPU
+    		    0,            // GPU
+    		    5_000_000,    // netUp (5MB/s)
+    		    5_000_000,    // netDown
+    		    30_000_000,   // heap
+    		    1,            // gc
+    		    0,            // diskRead
+    		    0,            // diskWrite
+    		    0             // migrateTime
+    		);
         long totalStart = System.currentTimeMillis();
 
         System.out.println("[SortMaster] START id=" + getAgentID()

@@ -65,7 +65,17 @@ public class DL4JMSSlave extends AbstractAgent implements IMessageListener {
 
     @Override
     public @continuable void run() {
-    	setAgentClassInfo(1000, 4000, 0, 0, 0, 0, 0, 0, 1000 * 60 * 5);
+    	setAgentClassInfo(
+    	    6000,   // CPU
+    	    8000,   // GPU
+    	    50_000_000, // netUp (50MB/s)
+    	    50_000_000, // netDown
+    	    300_000_000, // heap (300MB)
+    	    3,      // GC count
+    	    200_000_000, // diskRead (200MB/s)
+    	    100_000_000, // diskWrite (100MB/s)
+    	    10_000 // migrateTime (10s)
+    	);
 
         System.out.println("[DL4JSlave][RUN] START id=" + getAgentID()
                 + " ip=" + IPAddress.myIPAddress

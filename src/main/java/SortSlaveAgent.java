@@ -33,6 +33,17 @@ public class SortSlaveAgent extends AbstractAgent implements IMessageListener {
 
     @Override
     public void run() {
+    	setAgentClassInfo(
+    		    4000,        // CPU Change (250k sort)
+    		    0,           // GPU
+    		    1_000_000,   // NetworkUp  (1MB)
+    		    1_000_000,   // NetworkDown (1MB)
+    		    10_000_000,  // HeapChange  (10MB peak)
+    		    0,           // GC
+    		    0,           // DiskRead
+    		    0,           // DiskWrite
+    		    100          // migrateTime (100ms)
+    		);
         try {
             MessageAPI.registerMessageListener(this);
         } catch (Exception e) {

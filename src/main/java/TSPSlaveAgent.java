@@ -33,6 +33,17 @@ public class TSPSlaveAgent extends AbstractAgent implements IMessageListener {
 
     @Override
     public void run() {
+    	setAgentClassInfo(
+    		    30_000,     // CPU 高
+    		    0,          // GPU 不要
+    		    3_000,      // NetworkUp (bestPath)
+    		    80_000,     // NetworkDown (matrix)
+    		    5_000_000,  // Heap
+    		    100,        // GC
+    		    0,          // DiskRead
+    		    0,          // DiskWrite
+    		    15_000      // migrateTime (多め)
+    		);
         try {
             MessageAPI.registerMessageListener(this);
         } catch (Exception e) {

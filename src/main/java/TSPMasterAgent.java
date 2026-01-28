@@ -88,6 +88,17 @@ public class TSPMasterAgent extends AbstractAgent implements IMessageListener {
     }
     @Override
     public void run() {
+    	setAgentClassInfo(
+    		    500,        // CPU (小)
+    		    0,          // GPU
+    		    300_000,    // NetworkUp (matrix送信)
+    		    20_000,     // NetworkDown (bestPath受信)
+    		    10_000_000, // Heap (10MB peak)
+    		    0,          // GC
+    		    0,          // DiskRead
+    		    0,          // DiskWrite
+    		    5_000       // migrateTime (Masterは重いので動かさない意図)
+    		);
 
         long totalStart = System.currentTimeMillis();
 

@@ -74,7 +74,18 @@ public class AgentClassInfo implements Serializable {
         this.diskReadChange = diskReadChange;
         this.diskWriteChange = diskWriteChange;
         this.migrateTime = migrateTime;
-    }
+        
+        cpuChangeRecords.put(now(), this.cpuChange);
+        gpuChangeRecords.put(now(), this.gpuChange);
+        networkUpChangeRecords.put(now(), this.networkUpChange);
+        networkDownChangeRecords.put(now(), this.networkDownChange);
+        heapChangeRecords.put(now(), this.heapChange);
+        gcCountChangeRecords.put(now(), this.gcCountChange);
+        diskReadChangeRecords.put(now(), this.diskReadChange);
+        diskWriteChangeRecords.put(now(), this.diskWriteChange);
+        migrateTimeRecords.put(now(), this.migrateTime);
+        
+        }
 
     // ===============================
     // Getters / Setters（全て record*** 経由）

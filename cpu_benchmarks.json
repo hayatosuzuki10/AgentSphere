@@ -15,9 +15,9 @@
 
 "9th Gen Intel(R) Core(TM) i7-9700" : 13253,
 
-"8th Gen Intel(R) Core(TM) i7-8700" : 12789,
+"Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz" : 12789,
 
-"6th Gen Intel(R) Core(TM) i7-6700" : 8108,
+"Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz" : 8108,
 
 "Ryzen 9 4900HS" : 15022
 }
