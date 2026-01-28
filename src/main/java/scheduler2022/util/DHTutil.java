@@ -81,6 +81,9 @@ public class DHTutil {
 	
 	public static void setAgentInfo(String key, AgentClassInfo agentInfo) {
 		DHTChordAPI.put(keyCode + AgentCode + key, agentInfo);
+
+	    System.out.println("[DHTutil#setAgentInfo] key=" + key + " info=" + agentInfo);
+
 	}
 	
 	public static boolean containsAgent(String key) {
@@ -111,7 +114,10 @@ public class DHTutil {
 	}
 	
 	public static AgentClassInfo getAgentInfo(String key) {
-		return (AgentClassInfo) DHTChordAPI.get(keyCode + AgentCode + key);
+	    AgentClassInfo info =
+	            (AgentClassInfo) DHTChordAPI.get(keyCode + AgentCode + key);
+
+	    return info;
 	}
 	
 	public static void removePcInfo(String key) {

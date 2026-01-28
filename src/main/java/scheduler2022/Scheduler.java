@@ -64,7 +64,7 @@ public class Scheduler implements Runnable {
 
     public static Map<String, AgentInstanceInfo> agentInfo = new HashMap<>();
 	
-	public static DynamicPCInfoDetector analyze;
+	public static DynamicPCInfoDetector analyze = new DynamicPCInfoDetector();
 	
 
 	

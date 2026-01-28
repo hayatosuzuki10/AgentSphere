@@ -133,6 +133,7 @@ public class StaticPCInfoCollector implements Serializable {
                .filter(e -> cpu.Name != null && cpu.Name.contains(e.getKey()))
                .findFirst()
                .ifPresent(e -> cpu.BenchMarkScore = e.getValue());
+            System.out.println(cpu.Name);
         } catch (IOException ignored) {
         	System.err.println("CPUBenchMarkScore can't collect");
         }
@@ -147,6 +148,8 @@ public class StaticPCInfoCollector implements Serializable {
                    .filter(e -> g.Name != null && g.Name.contains(e.getKey()))
                    .findFirst()
                    .ifPresent(e -> g.BenchMarkScore = e.getValue());
+
+                System.out.println(g.Name);
             });
         } catch (IOException ignored) {}
     }

@@ -23,26 +23,29 @@ public class DynamicPCInfoDetector {
 
     // 解析に使う時間など、しきい値群（必要になったら setter などで外から変えられるようにしても良い）
     private long analyzeTime = 10000;
-    private int cpuPerfThreshold = 2000;
-    private double cpuProcThreshold = 4;
-    private long heapMemoryThreshold = 1000;
-    private int gcCountThreshold = 10;
-    private int gpuPerfThreshold = 2000;
-    private int gpuMemThreshold = 1000;
-    private double netThresholdMbps = 2000000;
-    private long diskThreshold = 1_000_000; // bytes/sec (例: 1MB/s)
+    private int cpuPerfThreshold = 200;
+    private double cpuProcThreshold = 1;
+    private long heapMemoryThreshold = 50;
+    private int gcCountThreshold = 1;
+    private int gpuPerfThreshold = 200;
+    private int gpuMemThreshold = 100;
+    private double netThresholdMbps = 200000;
+    private long diskThreshold = 100_000; // bytes/sec (例: 1MB/s)
     
 
     // 固定スペック情報（ベンチマークなど）
-    public final StaticPCInfo spi;
+    public StaticPCInfo spi;
 
     // DynamicPCInfo のバッファ（analyze/add/poll/size は synchronized で保護）
     private final java.util.Queue<DynamicPCInfo> queue = new java.util.concurrent.ConcurrentLinkedQueue<>();
     // 直近の解析結果を ID ごとに保持
     private final Map<String, Result> results = new HashMap<>();
 
-    public DynamicPCInfoDetector(StaticPCInfo spi) {
-        this.spi = Objects.requireNonNull(spi);
+    public DynamicPCInfoDetector() {
+    }
+    
+    public void resetSPI(StaticPCInfo spi) {
+    	this.spi = Objects.requireNonNull(spi);
     }
 
     /**
@@ -74,18 +77,16 @@ public class DynamicPCInfoDetector {
     public void analyze(String id) {
         long analyzeStartMillis = System.currentTimeMillis();
 
-        // change〜after の間に挟まれたサンプルは解析対象から外す想定
         long change = System.currentTimeMillis();
         sleepQuiet(3000);
         long after = System.currentTimeMillis();
 
-        // もう少しデータが溜まるのを待つ
         sleepQuiet(analyzeTime);
 
-        // 現時点でのキューをディープコピー（以降の処理はこのスナップショットに対して行う）
         Queue<DynamicPCInfo> snapshot = copyQueue(queue);
         Queue<DynamicPCInfo> beforeCopy = new LinkedList<>();
         Queue<DynamicPCInfo> afterCopy = new LinkedList<>();
+
 
         for (DynamicPCInfo dpi : snapshot) {
             if (dpi.timeStanp <= change) {
@@ -95,13 +96,12 @@ public class DynamicPCInfoDetector {
             }
         }
 
+
         Result result = new Result(id, beforeCopy, afterCopy, analyzeStartMillis);
         results.put(id, result);
 
-        // ログと AgentInfo 更新はここでまとめて行う
-        //result.print();
         result.updateAgentInfo(id);
-        //result.print();
+        result.print();
     }
 
     /**
@@ -189,7 +189,10 @@ public class DynamicPCInfoDetector {
             agentChange = afterAgentNum - beforeAgentNum;
             if(agentChange == 0) {
             	agentChange = 1;
+            }else if(agentChange >= 5) {
+            	agentChange =5;
             }
+            
 
             // ===== CPU =====
             int beforeCPUPerf = bef.cpuPerf / bef.count;
@@ -258,7 +261,8 @@ public class DynamicPCInfoDetector {
             this.diskWriteChange = (afterWrite - beforeWrite) / agentChange;
             this.hasChangeDiskWrite = this.diskWriteChange >= diskThreshold;
         }
-
+        
+        
         /**
          * 解析結果を AgentInfo に反映する。
          * 「変化あり」の場合だけ値を記録し、それ以外は 0 を記録する方針。

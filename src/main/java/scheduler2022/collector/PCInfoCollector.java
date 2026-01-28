@@ -11,7 +11,6 @@ import oshi.hardware.CentralProcessor;
 import primula.api.core.assh.ConsolePanel;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
-import scheduler2022.DynamicPCInfoDetector;
 import scheduler2022.InformationCenter;
 import scheduler2022.JfrMonitorThread;
 import scheduler2022.JudgeOS;
@@ -196,7 +195,7 @@ public class PCInfoCollector implements Runnable {
 
 	private void setStaticPCInfo() {
 	    StaticPCInfo spi = staticCollector.collect();
-	    Scheduler.analyze = new DynamicPCInfoDetector(spi);
+	    Scheduler.analyze.resetSPI(spi);
 	    scheduler2022.util.DHTutil.setStaticPCInfo(primula.util.IPAddress.myIPAddress, spi);
 	    InformationCenter.setMySPI(spi);
 	
