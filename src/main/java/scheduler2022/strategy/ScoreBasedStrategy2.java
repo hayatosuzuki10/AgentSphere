@@ -1,5 +1,6 @@
 package scheduler2022.strategy;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -66,7 +67,7 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
             ScoreResult analyzingResult = new ScoreResult(selfIP, Double.NEGATIVE_INFINITY, "negative");
             
             
-            DynamicPCInfo myDyn = InformationCenter.getMyDPI();
+            DynamicPCInfo myDyn = DHTutil.getPcInfo(selfIP);
             StaticPCInfo mySta = InformationCenter.getMySPI();
 
             AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
@@ -78,12 +79,19 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
             if (myDyn == null|| mySta == null) {
                 return selfIP;
             }
+            Map<String, DynamicPCInfo> otherDPIs = new HashMap<>();
+            for (String ip : getAliveIPs()) {
+                DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
+                otherDPIs.put(ip, dpi);
+               
+                
+            }
 
             boolean agentNeedsGPU = info.getGpuChange() > 0;
-        	boolean clusterHasGpuAgents = checkIfGpuAgentsExist();
+        	boolean clusterHasGpuAgents = checkIfGpuAgentsExist(myDyn, otherDPIs);
         	boolean isThisGpuPc = (mySta != null && mySta.GPUs != null && !mySta.GPUs.isEmpty());
 
-            ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress);
+            ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress, myDyn, otherDPIs);
             if(!agentNeedsGPU && clusterHasGpuAgents && isThisGpuPc) {
             	myScoreResult.score -= 2.0;
             }
@@ -96,13 +104,13 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
                 	continue;
 
                 try {
-                    DynamicPCInfo dyn = InformationCenter.getOtherDPI(ip);
+                    DynamicPCInfo dyn = DHTutil.getPcInfo(ip);
                     StaticPCInfo sta = InformationCenter.getOtherSPI(ip);
                 	boolean isGpuPc = (sta != null && sta.GPUs != null && !sta.GPUs.isEmpty());
 
                 	
                     if (hasMeetDemand(agent, dyn, sta)) {
-                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip, myDyn, otherDPIs);
                     	
                     	
                     	// スコアにGPUポリシー調整
@@ -118,7 +126,7 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
                             bestResult = result;
                         }
                     }else {
-                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip, myDyn, otherDPIs);
                     	if (!agentNeedsGPU && clusterHasGpuAgents && isGpuPc) {
                     	    result.score -= 1.0; // 避けられるなら避ける程度の減点
                     	}
@@ -135,23 +143,23 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
                 }
             }
             if(analyzingResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
-            	if(InformationCenter.getOtherDPI(analyzingResult.ip).AgentsNum == 0) {
+            	if(DHTutil.getPcInfo(analyzingResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(analyzingResult.ip, false);
                 }
-            	setTemporaryPrediction(agent, analyzingResult.ip);
+            	setTemporaryPrediction(agent, analyzingResult.ip, myDyn, otherDPIs);
                 agent.RegistarHistory(analyzingResult.ip, myScoreResult.reason + analyzingResult.reason);
                 
             }else if (bestResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
-            	if(InformationCenter.getOtherDPI(bestResult.ip).AgentsNum == 0) {
+            	if(DHTutil.getPcInfo(bestResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(bestResult.ip, false);
                 
                 }
-            	setTemporaryPrediction(agent, bestResult.ip);
+            	setTemporaryPrediction(agent, bestResult.ip, myDyn, otherDPIs);
                 agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
                 
                 return bestResult.ip;
             } else if(notBadResult.score > myScoreResult.score + Scheduler.scoreThreshold){
-            	setTemporaryPrediction(agent, notBadResult.ip);
+            	setTemporaryPrediction(agent, notBadResult.ip, myDyn, otherDPIs);
             	agent.RegistarHistory(notBadResult.ip, myScoreResult.reason + notBadResult.reason);
             	return notBadResult.ip;
             }
@@ -174,9 +182,9 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
 
     
  // GPU要求エージェントがクラスタ内に存在するか？
-    private boolean checkIfGpuAgentsExist() {
-        for (String ip : getAliveIPs()) {
-            DynamicPCInfo dpi = InformationCenter.getOtherDPI(ip);
+    private boolean checkIfGpuAgentsExist(DynamicPCInfo myDPI ,Map<String, DynamicPCInfo> dpis) {
+        for (var e : dpis.entrySet()) {
+        	DynamicPCInfo dpi = e.getValue();
             if (dpi == null || dpi.Agents == null) continue;
 
             for (var agent : dpi.Agents.values()) {
@@ -188,7 +196,6 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
             
         }
         
-        DynamicPCInfo myDPI = InformationCenter.getMyDPI();
         for(var agent: myDPI.Agents.values()) {
         	AgentClassInfo info = DHTutil.getAgentInfo(agent.Name);
         	if(info != null && info.getGpuChange() > 0) {
@@ -199,7 +206,11 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
     }
     
     private boolean isOutOfMemory(DynamicPCInfo dpi) {
-    	return dpi.Memory.JvmHeapUsed / dpi.Memory.JvmHeapMax > MEMORY_LIMIT;
+        if (dpi == null || dpi.Memory == null) return false;
+        if (dpi.Memory.JvmHeapMax <= 0) return false;
+
+        double ratio = (double) dpi.Memory.JvmHeapUsed / (double) dpi.Memory.JvmHeapMax;
+        return ratio > MEMORY_LIMIT;
     }
     
 
@@ -220,14 +231,12 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
 
     /* ================= 予測 ================= */
 
-    private void setTemporaryPrediction(AbstractAgent agent, String dst) {
+    private void setTemporaryPrediction(AbstractAgent agent, String dst, DynamicPCInfo myDpi, Map<String, DynamicPCInfo> dpis) {
         try {
             StaticPCInfo dstSpi = InformationCenter.getOtherSPI(dst);
             StaticPCInfo mySpi  = InformationCenter.getMySPI();
 
-            DynamicPCInfo dstDpi = InformationCenter.getOtherDPI(dst);
-            DynamicPCInfo myDpi  = InformationCenter.getMyDPI();
-
+            DynamicPCInfo dstDpi = dpis.get(dst);
             AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
 
             if (dstSpi == null || mySpi == null || dstDpi == null || myDpi == null || info == null) return;
@@ -544,39 +553,75 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
     private ScoreResult calculateMatchScore(AbstractAgent agent,
             DynamicPCInfo dyn,
             StaticPCInfo sta,
-            String ip) {
+            String ip,
+            DynamicPCInfo mydpi,
+            Map<String, DynamicPCInfo> dpis
+            ) {
 
-AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
-if (info == null || dyn == null || sta == null)
-return new ScoreResult(ip, Double.NEGATIVE_INFINITY, "NULL");
+        AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
+        if (info == null || dyn == null || sta == null)
+            return new ScoreResult(ip, Double.NEGATIVE_INFINITY, "NULL");
 
-double cpu = scoreCPU(info, dyn, sta) * cpuWeight;
-double gpu = scoreGPU(info, dyn, sta) * gpuWeight;
-double mem = scoreMemory(info, dyn, sta) * memWeight;
-double net = scoreNetworkTotal(info, dyn, sta) * netWeight;
-double io  = scoreIO(info, dyn, sta) * ioWeight;
+        // ---- 各資源スコア（まず raw 値を計算） ----
+        double rawCpu = Math.max(0.0, scoreCPU(info, dyn, sta));
+        double rawGpu = Math.max(0.0, scoreGPU(info, dyn, sta));
+        double rawMem = Math.max(0.0, scoreMemory(info, dyn, sta));
+        double rawNet = Math.max(0.0, scoreNetworkTotal(info, dyn, sta));
+        double rawIO  = Math.max(0.0, scoreIO(info, dyn, sta));
 
-// 優先度 × (1 - LA/コア数)
-double priorityScore = agent.priority *
-clamp01(1.0 - (dyn.LoadAverage / Math.max(1, sta.CPU.LogicalCore)))
-* laWeight;
+        // log1p でスケール圧縮（0〜数十ぐらいに収まる想定）
+        double cpu = Math.log1p(rawCpu) * cpuWeight;
+        double gpu = Math.log1p(rawGpu) * gpuWeight;
+        double mem = Math.log1p(rawMem) * memWeight;
+        double net = Math.log1p(rawNet) * netWeight;
+        double io  = Math.log1p(rawIO)  * ioWeight;
 
-// 移動コスト（前回 + ネット遅延）
-double migrateCost = 0.0;
-DynamicPCInfo mydpi = InformationCenter.getMyDPI();
-if (mydpi != null && mydpi.NetworkSpeeds.get(ip) != null) {
-double netNorm = clamp01(mydpi.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900);
-migrateCost = info.getMigrateTime() * (1.0 - netNorm) * migTimeWeight;
-}
+        // 優先度 × (1 - LA/コア数)
+        double priorityScore = 0.0;
+        if (sta.CPU != null) {
+            int cores = Math.max(1, sta.CPU.LogicalCore);
+            double laRatio = dyn.LoadAverage / (double) cores;
+            priorityScore = agent.priority * clamp01(1.0 - laRatio) * laWeight;
+        }
 
-double total = cpu + gpu + mem + net + io + priorityScore - migrateCost;
-String reason = String.format(
-	    "CPU=%.2f GPU=%.2f MEM=%.2f NET=%.2f IO=%.2f PRIO=%.2f MIG=%.2f => %.2f",
-	    cpu, gpu, mem, net, io, priorityScore, migrateCost, total
-	);
+        // ---- 移動コスト（時間 + 推定データ量） ----
+        double migrateCost = 0.0;
 
-return new ScoreResult(ip, total, reason);
-}
+        // ネットワーク正規化（0〜1）
+        double netNorm = 0.0;
+        if (mydpi != null && mydpi.NetworkSpeeds != null && mydpi.NetworkSpeeds.get(ip) != null) {
+            netNorm = clamp01(mydpi.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900.0);
+        }
+
+        // ベースは AgentClassInfo の migrateTime
+        double migrateTimeBase = Math.max(0.0, info.getMigrateTime());
+
+        // migrateTime が 0 の場合、ヒープサイズからざっくり補正
+        if (migrateTimeBase == 0.0) {
+            double heapMB = Math.max(0L, info.getHeapChange()) / 1024.0 / 1024.0;
+            // 16MB 当たり 1 単位ぐらいのコストを適当に載せる
+            migrateTimeBase = heapMB / 16.0;
+        }
+
+        migrateCost = migrateTimeBase * (1.0 - netNorm) * migTimeWeight;
+
+        // congestion も少しだけペナルティに載せる（詰まってるノードは避けたい）
+        dpis.put(IPAddress.myIPAddress, mydpi);
+        double congestion = calcCongestion(ip, dyn, dpis);
+        migrateCost += congestion * migCountWeight;
+
+        // ---- 総合スコア ----
+        double total = cpu + gpu + mem + net + io + priorityScore - migrateCost;
+
+        String reason = String.format(
+            "CPU(raw=%.2f) GPU(raw=%.2f) MEM(raw=%.2f) NET(raw=%.2f) IO(raw=%.2f) -> " +
+            "CPU=%.2f GPU=%.2f MEM=%.2f NET=%.2f IO=%.2f PRIO=%.2f MIG=%.2f => %.2f",
+            rawCpu, rawGpu, rawMem, rawNet, rawIO,
+            cpu, gpu, mem, net, io, priorityScore, migrateCost, total
+        );
+
+        return new ScoreResult(ip, total, reason);
+    }
 
     
 
@@ -621,74 +666,107 @@ return new ScoreResult(ip, total, reason);
         return best;
     }
     
-	/* -------------------------
-	* Memory: host available を食いつぶす想定で余裕を点数化
-	* ------------------------- */
+    /* -------------------------
+     * Memory: 追加後にどれだけ余裕が残るか（0〜1）と要求サイズ(log)を掛ける
+     * ------------------------- */
     private double scoreMemory(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
 
-        if (dyn.Memory == null) return 0.0;
+        if (dyn == null || dyn.Memory == null) return 0.0;
 
-        long req = Math.max(0, info.getHeapChange());
-        long free = Math.max(0, dyn.Memory.JvmHeapCommitted - dyn.Memory.JvmHeapUsed);
+        long heapChange = Math.max(0L, info.getHeapChange());
+        if (heapChange == 0L) return 0.0;
 
-        return (double) req * (double) free;
+        long committed = dyn.Memory.JvmHeapCommitted;
+        long used      = dyn.Memory.JvmHeapUsed;
+        long max       = dyn.Memory.JvmHeapMax > 0 ? dyn.Memory.JvmHeapMax : committed;
+
+        if (max <= 0L) return 0.0;
+
+        long free      = Math.max(0L, committed - used);
+        long afterFree = Math.max(0L, free - heapChange);
+
+        // 追加後の「空きの割合」 (0〜1 に clamp)
+        double freeRatioAfter = clamp01((double) afterFree / (double) max);
+
+        // 要求ヒープ量を MB に変換して log で圧縮
+        double reqMB = heapChange / 1024.0 / 1024.0;
+        if (reqMB <= 0.0) return 0.0;
+
+        // freeRatioAfter が大きく、要求もそこそこ大きいほどスコアが高い
+        return freeRatioAfter * Math.log1p(reqMB);
     }
 
-	/* -------------------------
-	 * Network(合計): 全NICの帯域合計に対する未使用率を返す
-	 * 戻り値: 0.0 ～ 1.0（1.0 = 完全に空いている）
-	 * ------------------------- */
+    /* -------------------------
+     * Network(合計):
+     *  未使用率(0〜1) × log(要求帯域MB/s + 1)
+     * ------------------------- */
     private double scoreNetworkTotal(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
         if (dyn == null || sta == null || dyn.NetworkCards == null || sta.NetworkCards == null)
             return 0.0;
 
-        long req = Math.max(0, info.getNetworkUpChange() + info.getNetworkDownChange());
+        long upNeed   = Math.max(0L, info.getNetworkUpChange());
+        long downNeed = Math.max(0L, info.getNetworkDownChange());
+        long req      = upNeed + downNeed;
+        if (req <= 0L) return 0.0;
 
-        long used = 0L;
+        long used  = 0L;
         long total = 0L;
 
-        for (var d : dyn.NetworkCards.values()) {
+        for (DynamicPCInfo.NetworkCard d : dyn.NetworkCards.values()) {
             if (d == null) continue;
             used += safeLong(d.UploadSpeed) + safeLong(d.DownloadSpeed);
         }
 
-        for (var s : sta.NetworkCards.values()) {
+        for (StaticPCInfo.NetworkCard s : sta.NetworkCards.values()) {
             if (s == null) continue;
-            total += Math.max(0L, s.Bandwidth);
+            if (s.Bandwidth > 0L) {
+                total += s.Bandwidth;
+            }
         }
 
-        if (total <= 0) return 0.0;
+        if (total <= 0L) {
+            // 帯域が測れない環境 → スコア0にして無視
+            return 0.0;
+        }
 
-        double unusedRatio = 1.0 - clamp01((double) used / (double) total);
+        double usedRatio   = clamp01((double) used / (double) total);
+        double unusedRatio = 1.0 - usedRatio;
 
-        return req * unusedRatio * total; // 重要：帯域を掛ける
+        // 要求帯域を MB/s 相当に（だいたいのスケールでOK）
+        double reqMBps = req / 1_000_000.0;
+        if (reqMBps <= 0.0) return 0.0;
+
+        return unusedRatio * Math.log1p(reqMBps);
     }
 	
     private double scoreIO(AgentClassInfo info, DynamicPCInfo dyn, StaticPCInfo sta) {
 
+        if (info == null || dyn == null || dyn.diskIO == null || sta == null) return 0.0;
+
         long readReq  = Math.max(0L, info.getDiskReadChange());
         long writeReq = Math.max(0L, info.getDiskWriteChange());
-        long req = readReq + writeReq;
+        long req      = readReq + writeReq;
 
-        if (req <= 0) return 0.0;
-        if (dyn.diskIO == null) return 0.0;
+        if (req <= 0L) return 0.0;
 
         // ディスク性能の基準値（暫定）
-        double maxRead  = sta.hasSSD ? 500_000_000.0 : 100_000_000.0;
+        double maxRead  = sta.hasSSD ? 500_000_000.0 : 100_000_000.0;  // bytes/s 相当
         double maxWrite = sta.hasSSD ? 500_000_000.0 : 100_000_000.0;
 
         double usedReadRatio  = clamp01(dyn.diskIO.ReadSpeed  / maxRead);
         double usedWriteRatio = clamp01(dyn.diskIO.WriteSpeed / maxWrite);
+        double usedRatio      = (usedReadRatio + usedWriteRatio) / 2.0;
 
-        double unusedRate = 1.0 - ((usedReadRatio + usedWriteRatio) / 2.0);
+        double unusedRate = 1.0 - usedRatio;
 
-        double throughput = (dyn.diskIO.ReadSpeed + dyn.diskIO.WriteSpeed);
+        // 要求IOを MB/s にざっくり
+        double reqMBps = req / 1_000_000.0;
+        if (reqMBps <= 0.0) return 0.0;
 
-        // 最終スコア
-        return req * unusedRate * throughput;
+        return unusedRate * Math.log1p(reqMBps);
     }
 	
-	private double calcCongestion(String ip, DynamicPCInfo dynForIp) {
+	private double calcCongestion(String ip, DynamicPCInfo dynForIp, Map<String, DynamicPCInfo> allDPIs) {
 
     	int myAgents = 0;
 	    if(dynForIp != null && dynForIp.Agents != null) {
@@ -700,11 +778,11 @@ return new ScoreResult(ip, total, reason);
 	    }
 
 	    int totalAgents = 0;
-	    for (String addr : InformationCenter.getAllIPs()) {
-	        DynamicPCInfo dpi = InformationCenter.getOtherDPI(addr);
+	    for (var e : allDPIs.entrySet()) {
+	        DynamicPCInfo dpi = e.getValue();
 	        if (dpi == null || dpi.Agents == null) continue;
-	        for(var e: dpi.Agents.entrySet()) {
-	        	if(!e.getValue().Name.contains("Messenger")) {
+	        for(var e2: dpi.Agents.entrySet()) {
+	        	if(!e2.getValue().Name.contains("Messenger")) {
 	        		totalAgents ++;
 	        	}
 	        }

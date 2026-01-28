@@ -30,6 +30,7 @@ import scheduler2022.JudgeOS;
 import scheduler2022.Scheduler;
 import scheduler2022.collector.DynamicPcInfoCollector;
 import scheduler2022.collector.PCInfoCollector;
+import scheduler2022.util.DHTutil;
 import sphereConnection.stub.SphereSpec;
 
 /**
@@ -506,7 +507,7 @@ public class EasyDistributeHashTable implements ICoreModule {
 	    if (JudgeOS.isWindows()) tmp += 1.0;
 
 	    final double la = tmp; 
-	    DynamicPCInfo prevDPI = InformationCenter.getMyDPI();
+	    DynamicPCInfo prevDPI = DHTutil.getPcInfo(myIP);
 	    DynamicPCInfo dpi;
 	    if (prevDPI != null && prevDPI.isForecast
 	            && prevDPI.timeStanp + Scheduler.getTimeStampExpire() > System.currentTimeMillis()) {

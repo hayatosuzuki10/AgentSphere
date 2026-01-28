@@ -1,5 +1,6 @@
 package scheduler2022.strategy;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -66,7 +67,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             ScoreResult analyzingResult = new ScoreResult(selfIP, Double.NEGATIVE_INFINITY, "negative");
             
             
-            DynamicPCInfo myDyn = InformationCenter.getMyDPI();
+            DynamicPCInfo myDyn = DHTutil.getPcInfo(selfIP);
             StaticPCInfo mySta = InformationCenter.getMySPI();
 
             AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
@@ -78,12 +79,19 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             if (myDyn == null|| mySta == null) {
                 return selfIP;
             }
+            Map<String, DynamicPCInfo> otherDPIs = new HashMap<>();
+            for (String ip : getAliveIPs()) {
+                DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
+                otherDPIs.put(ip, dpi);
+               
+                
+            }
 
             boolean agentNeedsGPU = info.getGpuChange() > 0;
-        	boolean clusterHasGpuAgents = checkIfGpuAgentsExist();
+        	boolean clusterHasGpuAgents = checkIfGpuAgentsExist(myDyn, otherDPIs);
         	boolean isThisGpuPc = (mySta != null && mySta.GPUs != null && !mySta.GPUs.isEmpty());
 
-            ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress);
+            ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress, myDyn, otherDPIs);
             if(!agentNeedsGPU && clusterHasGpuAgents && isThisGpuPc) {
             	myScoreResult.score -= 2.0;
             }
@@ -96,13 +104,13 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 	continue;
 
                 try {
-                    DynamicPCInfo dyn = InformationCenter.getOtherDPI(ip);
+                    DynamicPCInfo dyn = DHTutil.getPcInfo(ip);
                     StaticPCInfo sta = InformationCenter.getOtherSPI(ip);
                 	boolean isGpuPc = (sta != null && sta.GPUs != null && !sta.GPUs.isEmpty());
 
                 	
                     if (hasMeetDemand(agent, dyn, sta)) {
-                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip, myDyn, otherDPIs);
                     	
                     	
                     	// スコアにGPUポリシー調整
@@ -118,7 +126,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                             bestResult = result;
                         }
                     }else {
-                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip);
+                    	ScoreResult result = calculateMatchScore(agent, dyn, sta, ip, myDyn, otherDPIs);
                     	if (!agentNeedsGPU && clusterHasGpuAgents && isGpuPc) {
                     	    result.score -= 1.0; // 避けられるなら避ける程度の減点
                     	}
@@ -135,23 +143,23 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 }
             }
             if(analyzingResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
-            	if(InformationCenter.getOtherDPI(analyzingResult.ip).AgentsNum == 0) {
+            	if(DHTutil.getPcInfo(analyzingResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(analyzingResult.ip, false);
                 }
-            	setTemporaryPrediction(agent, analyzingResult.ip);
-                agent.RegistarHistory(analyzingResult.ip, myScoreResult.reason + analyzingResult.reason);
+            	setTemporaryPrediction(agent, analyzingResult.ip, myDyn, otherDPIs);
+                agent.RegistarHistory(analyzingResult.ip, "[analyze]"+ myScoreResult.reason + analyzingResult.reason);
                 
             }else if (bestResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
-            	if(InformationCenter.getOtherDPI(bestResult.ip).AgentsNum == 0) {
+            	if(DHTutil.getPcInfo(bestResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(bestResult.ip, false);
                 
                 }
-            	setTemporaryPrediction(agent, bestResult.ip);
+            	setTemporaryPrediction(agent, bestResult.ip, myDyn, otherDPIs);
                 agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
                 
                 return bestResult.ip;
             } else if(notBadResult.score > myScoreResult.score + Scheduler.scoreThreshold){
-            	setTemporaryPrediction(agent, notBadResult.ip);
+            	setTemporaryPrediction(agent, notBadResult.ip, myDyn, otherDPIs);
             	agent.RegistarHistory(notBadResult.ip, myScoreResult.reason + notBadResult.reason);
             	return notBadResult.ip;
             }
@@ -174,9 +182,9 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
     
  // GPU要求エージェントがクラスタ内に存在するか？
-    private boolean checkIfGpuAgentsExist() {
-        for (String ip : getAliveIPs()) {
-            DynamicPCInfo dpi = InformationCenter.getOtherDPI(ip);
+    private boolean checkIfGpuAgentsExist(DynamicPCInfo myDPI ,Map<String, DynamicPCInfo> dpis) {
+        for (var e : dpis.entrySet()) {
+        	DynamicPCInfo dpi = e.getValue();
             if (dpi == null || dpi.Agents == null) continue;
 
             for (var agent : dpi.Agents.values()) {
@@ -188,7 +196,6 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             
         }
         
-        DynamicPCInfo myDPI = InformationCenter.getMyDPI();
         for(var agent: myDPI.Agents.values()) {
         	AgentClassInfo info = DHTutil.getAgentInfo(agent.Name);
         	if(info != null && info.getGpuChange() > 0) {
@@ -220,14 +227,12 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
     /* ================= 予測 ================= */
 
-    private void setTemporaryPrediction(AbstractAgent agent, String dst) {
+    private void setTemporaryPrediction(AbstractAgent agent, String dst, DynamicPCInfo myDpi, Map<String, DynamicPCInfo> dpis) {
         try {
             StaticPCInfo dstSpi = InformationCenter.getOtherSPI(dst);
             StaticPCInfo mySpi  = InformationCenter.getMySPI();
 
-            DynamicPCInfo dstDpi = InformationCenter.getOtherDPI(dst);
-            DynamicPCInfo myDpi  = InformationCenter.getMyDPI();
-
+            DynamicPCInfo dstDpi = dpis.get(dst);
             AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
 
             if (dstSpi == null || mySpi == null || dstDpi == null || myDpi == null || info == null) return;
@@ -545,7 +550,9 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
             AbstractAgent agent,
             DynamicPCInfo dyn,
             StaticPCInfo sta,
-            String ip
+            String ip,
+            DynamicPCInfo myDPI,
+            Map<String, DynamicPCInfo> dpis
             ) {
 
         AgentClassInfo info = DHTutil.getAgentInfo(agent.getAgentName());
@@ -564,9 +571,8 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
         
 
-        double congestion = calcCongestion(ip, dyn);
+        double congestion = calcCongestion(ip, dyn, myDPI, dpis);
 
-        DynamicPCInfo myDPI = InformationCenter.getMyDPI();
         double networkSpeedNorm = 0;
         if (myDPI.NetworkSpeeds != null && myDPI.NetworkSpeeds.get(ip) != null) {
             networkSpeedNorm = clamp01(myDPI.NetworkSpeeds.get(ip).UploadSpeedByOriginal / 900);
@@ -732,7 +738,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 	}
 
 	
-	private double calcCongestion(String ip, DynamicPCInfo dynForIp) {
+	private double calcCongestion(String ip, DynamicPCInfo dynForIp, DynamicPCInfo myDPI, Map<String, DynamicPCInfo> allDPIs) {
 
     	int myAgents = 0;
 	    if(dynForIp != null && dynForIp.Agents != null) {
@@ -744,11 +750,12 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 	    }
 
 	    int totalAgents = 0;
-	    for (String addr : InformationCenter.getAllIPs()) {
-	        DynamicPCInfo dpi = InformationCenter.getOtherDPI(addr);
+	    allDPIs.put(IPAddress.myIPAddress, myDPI );
+	    for (var e : allDPIs.entrySet()) {
+	        DynamicPCInfo dpi = e.getValue();
 	        if (dpi == null || dpi.Agents == null) continue;
-	        for(var e: dpi.Agents.entrySet()) {
-	        	if(!e.getValue().Name.contains("Messenger")) {
+	        for(var e2: dpi.Agents.entrySet()) {
+	        	if(!e2.getValue().Name.contains("Messenger")) {
 	        		totalAgents ++;
 	        	}
 	        }

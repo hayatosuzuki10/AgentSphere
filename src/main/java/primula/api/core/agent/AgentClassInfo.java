@@ -27,7 +27,7 @@ public class AgentClassInfo implements Serializable {
     private long measureTime = System.currentTimeMillis();
 
     private final double accurateLearning = 0.8;
-    private final double unAccurateLearning = 0.2;
+    private final double unAccurateLearning = 0.01;
     private final int unAccurateCount = 5;
     private final long measureTimeExpired = 1000 * 60 * 3;
     

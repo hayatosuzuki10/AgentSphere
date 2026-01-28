@@ -261,7 +261,7 @@ public class Scheduler implements Runnable {
 	}
 	
 	public static void storeDPI() {
-		DynamicPCInfo dpi = InformationCenter.getMyDPI();
+		DynamicPCInfo dpi = DHTutil.getPcInfo(IPAddress.myIPAddress);
 		if(dpiBeforeChange != null) {
 			previousDPIBeforeChange = dpiBeforeChange.deepCopy();
 			timeBeforeDPIChange = timeAfterDPIChange;

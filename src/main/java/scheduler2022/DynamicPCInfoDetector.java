@@ -23,14 +23,14 @@ public class DynamicPCInfoDetector {
 
     // 解析に使う時間など、しきい値群（必要になったら setter などで外から変えられるようにしても良い）
     private long analyzeTime = 10000;
-    private int cpuPerfThreshold = 200;
-    private double cpuProcThreshold = 1;
-    private long heapMemoryThreshold = 50;
+    private int cpuPerfThreshold = 2000;
+    private double cpuProcThreshold = 10;
+    private long heapMemoryThreshold = 500;
     private int gcCountThreshold = 1;
-    private int gpuPerfThreshold = 200;
-    private int gpuMemThreshold = 100;
-    private double netThresholdMbps = 200000;
-    private long diskThreshold = 100_000; // bytes/sec (例: 1MB/s)
+    private int gpuPerfThreshold = 2000;
+    private int gpuMemThreshold = 1000;
+    private double netThresholdMbps = 2000000;
+    private long diskThreshold = 1_000_000; // bytes/sec (例: 1MB/s)
     
 
     // 固定スペック情報（ベンチマークなど）
@@ -75,6 +75,10 @@ public class DynamicPCInfoDetector {
      * 「change〜after」の前後で統計値を比較し Result を生成する。
      */
     public void analyze(String id) {
+
+        AgentInstanceInfo info = Scheduler.agentInfo.get(id);
+        if(info == null || info.getAgentName().contains("Messenger"))
+        	return;
         long analyzeStartMillis = System.currentTimeMillis();
 
         long change = System.currentTimeMillis();
@@ -170,6 +174,7 @@ public class DynamicPCInfoDetector {
         public Result(String id, Queue<DynamicPCInfo> before, Queue<DynamicPCInfo> after, long timeStamp) {
 
             this.timeStamp = timeStamp;
+            
 
             // ---- 集計 ----
             Aggregate bef = aggregate(before);
@@ -184,13 +189,23 @@ public class DynamicPCInfoDetector {
                 this.hasChangeNetworkDown = false;
                 return;
             }
-            int beforeAgentNum = before.poll().AgentsNum;
-            int afterAgentNum = after.poll().AgentsNum;
+            DynamicPCInfo beforeDPI = before.poll();
+            DynamicPCInfo afterDPI = after.poll();
+            
+            int beforeAgentNum = 0;
+            int afterAgentNum = 0;
+            
+            for(var e: beforeDPI.Agents.entrySet()) {
+            	if(e.getValue().Name.contains("Messenger"))
+            		beforeAgentNum ++;
+            }
+            for(var e: afterDPI.Agents.entrySet()) {
+            	if(e.getValue().Name.contains("Messenger"))
+            		afterAgentNum ++;
+            }
             agentChange = afterAgentNum - beforeAgentNum;
             if(agentChange == 0) {
             	agentChange = 1;
-            }else if(agentChange >= 5) {
-            	agentChange =5;
             }
             
 

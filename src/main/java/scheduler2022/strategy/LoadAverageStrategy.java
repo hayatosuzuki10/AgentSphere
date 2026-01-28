@@ -10,6 +10,7 @@ import primula.agent.AbstractAgent;
 import primula.util.IPAddress;
 import scheduler2022.DynamicPCInfo;
 import scheduler2022.InformationCenter;
+import scheduler2022.util.DHTutil;
 
 public class LoadAverageStrategy implements SchedulerStrategy{
 	private double delta = 1;
@@ -90,7 +91,7 @@ public class LoadAverageStrategy implements SchedulerStrategy{
 		Map<String, Double> loadAverageMap = new HashMap<>();
 		Set<String> currentIPs = InformationCenter.getAllIPs();
 		for(String ip : currentIPs) {
-			DynamicPCInfo dpi = InformationCenter.getOtherDPI(ip);
+			DynamicPCInfo dpi = DHTutil.getPcInfo(ip);
 			if (dpi != null) {
 			    loadAverageMap.put(ip, dpi.LoadAverage);
 			}
@@ -106,7 +107,7 @@ public class LoadAverageStrategy implements SchedulerStrategy{
 
 	@Override
 	public synchronized boolean shouldMove(AbstractAgent agent) {
-		DynamicPCInfo myInfo = InformationCenter.getMyDPI();
+		DynamicPCInfo myInfo = DHTutil.getPcInfo(IPAddress.myIPAddress);
 		if (myInfo == null) {
 			System.err.println("[WARN] shouldMove(): DynamicPCInfo または LoadAverage が null です");
 			return false;
