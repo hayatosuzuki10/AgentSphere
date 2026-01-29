@@ -102,7 +102,7 @@ public class AgentClassInfo implements Serializable {
     }
     
     public boolean isAccurate() {
-    	return measureCount > unAccurateCount;
+    	return measureCount < unAccurateCount;
     }
     
     public boolean isExpired() {
