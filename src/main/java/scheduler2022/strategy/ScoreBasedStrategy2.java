@@ -142,7 +142,7 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
                     System.out.println("[SCORE-SKIP] " + ip + " " + e.getClass().getSimpleName());
                 }
             }
-            if(analyzingResult.score > myScoreResult.score) {
+            if(needAnalyze && analyzingResult.score > myScoreResult.score) {
             	if(DHTutil.getPcInfo(analyzingResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(analyzingResult.ip, false);
                 }
