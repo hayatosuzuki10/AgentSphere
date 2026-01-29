@@ -23,12 +23,12 @@ public class DynamicPCInfoDetector {
 
     // 解析に使う時間など、しきい値群（必要になったら setter などで外から変えられるようにしても良い）
     private long analyzeTime = 10000;
-    private int cpuPerfThreshold = 2000;
+    private int cpuPerfThreshold = 1000;
     private double cpuProcThreshold = 10;
     private long heapMemoryThreshold = 500;
     private int gcCountThreshold = 1;
-    private int gpuPerfThreshold = 2000;
-    private int gpuMemThreshold = 1000;
+    private int gpuPerfThreshold = 1000;
+    private int gpuMemThreshold = 500;
     private double netThresholdMbps = 2000000;
     private long diskThreshold = 1_000_000; // bytes/sec (例: 1MB/s)
     
