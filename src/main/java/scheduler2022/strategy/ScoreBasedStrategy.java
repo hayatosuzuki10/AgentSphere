@@ -89,7 +89,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
 
             boolean agentNeedsGPU = info.getGpuChange() > 0;
         	boolean clusterHasGpuAgents = checkIfGpuAgentsExist(myDyn, otherDPIs);
-        	boolean isThisGpuPc = (mySta != null && mySta.GPUs != null && !mySta.GPUs.isEmpty());
+        	boolean isThisGpuPc = (myDyn != null && myDyn.GPUs != null && !myDyn.GPUs.isEmpty());
 
             ScoreResult myScoreResult = calculateMatchScore(agent, myDyn, mySta, IPAddress.myIPAddress, myDyn, otherDPIs);
             if(!agentNeedsGPU && clusterHasGpuAgents && isThisGpuPc) {
@@ -106,7 +106,7 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 try {
                     DynamicPCInfo dyn = DHTutil.getPcInfo(ip);
                     StaticPCInfo sta = InformationCenter.getOtherSPI(ip);
-                	boolean isGpuPc = (sta != null && sta.GPUs != null && !sta.GPUs.isEmpty());
+                	boolean isGpuPc = (dyn != null && dyn.GPUs != null && !dyn.GPUs.isEmpty());
 
                 	
                     if (hasMeetDemand(agent, dyn, sta)) {
