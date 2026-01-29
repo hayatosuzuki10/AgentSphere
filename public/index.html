@@ -6,30 +6,57 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<label>Scheduler Strategy:</label>
-	<select id="strategy-select">
-	  <option value="LoadAverageStrategy">LoadAverageStrategy</option>
-	  <option value="Strategy2022">Scheduler2022</option>
-	  <option value="ScoreBasedStrategy">ScoreBasedStrategy</option>
-	  <option value="ScoreBasedStrategy2">ScoreBasedStrategy2</option>
-	</select>
-	<label>Update Interval (ms):</label>
-	<input type="number" id="interval-input" value="1000">
-	<button onclick="applySchedulerConfig()">Apply</button>
   <h1>PC Information</h1>
 
   <!-- 🔷 タブ -->
   <div class="tabs">
-    <button class="tab active" onclick="showTab('load')">Load Average</button>
+    <button class="tab active" onclick="showTab('operation')">Operation</button>
+    <button class="tab" onclick="showTab('scheduler')">Scheduler</button>
+    <button class="tab" onclick="showTab('load')">Load Average</button>
     <button class="tab" onclick="showTab('cpu')">CPU</button>
-	<button class="tab" onclick="showTab('memory')">Memory</button>
-	<button class="tab" onclick="showTab('gpu')">GPU</button>
-	<button class="tab" onclick="showTab('network')">Network</button>
-	<button class="tab" onclick="showTab('speed')">Network Speed</button>
+    <button class="tab" onclick="showTab('memory')">Memory</button>
+    <button class="tab" onclick="showTab('gpu')">GPU</button>
+    <button class="tab" onclick="showTab('network')">Network</button>
+    <button class="tab" onclick="showTab('speed')">Network Speed</button>
+    <button class="tab" onclick="showTab('agents')">Agents</button>
+    <button class="tab" onclick="showTab('myPC')">My PC</button>
   </div>
 
+  <!-- 🔶   操作表示 -->
+  <div id="operation" class="tab-content active">
+    <div class="dashboard" id="dashboard-operation">
+      <div><strong>Server IP Address:</strong><p id="server-ip"></p></div>
+      <div>
+        <input id="command-input" type="text" placeholder="コマンドを入力">
+        <button onclick="sendCommand(document.getElementById('command-input').value)">run</button>
+      </div> 
+    </div>
+  </div>
+  
+  <!-- 🔶   スケジューラ操作表示 -->
+  <div id="scheduler" class="tab-content">
+    <div>
+      <label>Scheduler Strategy:</label>
+      <select id="strategy-select">
+        <option value="LoadAverageStrategy">LoadAverageStrategy</option>
+        <option value="Strategy2022">Scheduler2022</option>
+		<option value="ScoreBasedStrategy">ScoreBasedStrategy</option>
+		<option value="ScoreBasedStrategy2">ScoreBasedStrategy2</option>
+      </select>
+      <label>Update Interval (ms):</label>
+      <input type="number" id="interval-input" value="1000">
+      <label>Agent Observe Time</label>
+      <input type="number" id="observe-input" value="3000">
+      <label>Remigrate Prohibit Time</label>
+      <input type="number" id="remigrate-input" value="3000">
+      <label>Agent EMA Alpha</label>
+      <input type="number" id="ema-input" value="0.1">
+      <button onclick="applySchedulerConfig()">Apply</button>
+    </div> 
+  </div>
+  
   <!-- 🔶 ロードアベレージ表示 -->
-  <div id="load" class="tab-content active">
+  <div id="load" class="tab-content">
     <div class="dashboard" id="dashboard-load"></div>
   </div>
 
@@ -49,16 +76,213 @@
   </div>
   
   <!-- 🔶 ネットワーク状況表示 -->
-    <div id="network" class="tab-content">
-      <div class="dashboard" id="dashboard-network"></div>
+  <div id="network" class="tab-content">
+    <div class="dashboard" id="dashboard-network"></div>
+  </div>
+  
+  <!-- 🔶 ネットワークスピード状況表示 -->
+  <div id="speed" class="tab-content">
+    <div class="dashboard" id="dashboard-speed">
+      <div class="card">
+        <table class="network-speed-table">
+          <thead>
+            <tr>
+              <th>送信元 IP</th>
+              <th>宛先 IP</th>
+              <th>アップロード速度 (Mbps)</th>
+              <th>ダウンロード速度 (Mbps)</th>
+            </tr>
+          </thead>
+          <tbody id="networkSpeedBody">
+          </tbody>
+        </table>
+      </div>
     </div>
-	
-	<!-- 🔶 ネットワークスピード状況表示 -->
-	    <div id="speed" class="tab-content">
-	      <div class="dashboard" id="dashboard-speed"></div>
-	    </div>
+  </div>
+    
+  <!-- 🔶 Agent情報表示（IP別表示） -->
+  <div id="agents" class="tab-content">
+    <div class="dashboard" id="dashboard-agents">
+      <div class="agents-wrap">
+        <div class="agents-header">
+          <h3>Agents</h3>
+          <div class="agents-filter">
+            <label for="agents-ip-filter">IP フィルタ:</label>
+            <select id="agents-ip-filter">
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="agents-layout">
+          <!-- 左：一覧テーブル -->
+          <div class="agents-table-wrap">
+            <h4>Agent List</h4>
+            <table id="agents-table">
+              <thead>
+                <tr>
+                  <th>IP</th>
+                  <th>Agent ID</th>
+                  <th>Name</th>
+                  <th>StartTime</th>
+                </tr>
+              </thead>
+              <tbody id="agents-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- 右：IP ごとのカード -->
+          <div class="agents-by-ip-wrap">
+            <h4>Agents by IP</h4>
+            <div id="agents-by-ip"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔶　自分のPC状況表示 -->
+  <div id="myPC" class="tab-content">
+    <div class="dashboard" id="dashboard-myPC">
+      <div class="TimeLineContainer" id="LoadAverageTimeLine"></div>
+      <div class="TimeLineContainer" id="CPUTimeLine"></div>
+      <div class="TimeLineContainer" id="MemoryTimeLine"></div>
+      <div class="TimeLineContainer" id="GPUTimeLine"></div>
+      <div class="TimeLineContainer" id="NetworkTimeLine"></div>
+      <div class="TimeLineContainer" id="AgentTimeLine"></div>
+    </div>
+  </div>
+    
+  <style>
+    .agents-wrap { font-family: system-ui, sans-serif; }
+    #agents-table { width: 100%; border-collapse: collapse; }
+    #agents-table th, #agents-table td {
+      border: 1px solid #ddd; padding: 6px 8px; text-align: left; white-space: nowrap;
+    }
+    #agents-table thead th { background: #f6f8fa; position: sticky; top: 0; }
+    #agents-table tbody tr:nth-child(even) { background: #fafafa; }
+    .num { text-align: right; }
+
+    /* Agents レイアウト */
+    .agents-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .agents-filter select {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+    }
+    .agents-layout {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .agents-table-wrap {
+      flex: 2;
+      min-width: 0;
+      max-height: 400px;
+      overflow: auto;
+    }
+    .agents-by-ip-wrap {
+      flex: 3;
+      min-width: 0;
+      max-height: 400px;
+      overflow: auto;
+    }
+    .agent-ip-card {
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .agent-ip-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+    .agent-ip-label {
+      font-weight: 600;
+      color: #555;
+    }
+    .agent-ip-value {
+      font-family: monospace;
+      margin-left: 4px;
+    }
+    .agent-ip-count {
+      font-size: 0.75rem;
+      color: #666;
+    }
+    .agent-ip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .agent-ip-table th, .agent-ip-table td {
+      border: 1px solid #eee;
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+    .agent-ip-table thead th {
+      background: #f6f8fa;
+    }
+
+    /* 例: タイムライン用ラッパーに固定高を与える */
+    .timeline {
+      height: 180px;   /* 必須: ここで縦サイズを決める */
+      margin: 8px 0;
+    }
+    .timeline > canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    /* タイムライン全体の余白と高さ調整 */
+    .chart-container {
+      width: 100%;
+      height: 280px;   /* ← ← 高さを増やす（200〜400pxがちょうど良い） */
+      margin: 12px 0;
+    }
+
+    /* canvas自体を親のサイズいっぱいに広げる */
+    .chart-container > canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* GPUタイムライン専用（縦に並べるなら余白多め） */
+    .gpu-chart {
+      height: 260px;
+      margin-top: 10px;
+    }
+
+    /* Network テーブル */
+    .network-table-wrapper {
+      overflow-x: auto;
+    }
+    .network-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .network-table th,
+    .network-table td {
+      border: 1px solid #ddd;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+    .network-table thead th {
+      background: #f6f8fa;
+    }
+  </style>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <script src="main.js"></script>
 </body>
 </html>

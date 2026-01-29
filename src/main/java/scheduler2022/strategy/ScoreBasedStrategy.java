@@ -155,12 +155,12 @@ public class ScoreBasedStrategy implements SchedulerStrategy {
                 
                 }
             	setTemporaryPrediction(agent, bestResult.ip, myDyn, otherDPIs);
-                agent.RegistarHistory(bestResult.ip, myScoreResult.reason + bestResult.reason);
+                agent.RegistarHistory(bestResult.ip, "[best]"+ myScoreResult.reason + bestResult.reason);
                 
                 return bestResult.ip;
             } else if(notBadResult.score > myScoreResult.score + Scheduler.scoreThreshold){
             	setTemporaryPrediction(agent, notBadResult.ip, myDyn, otherDPIs);
-            	agent.RegistarHistory(notBadResult.ip, myScoreResult.reason + notBadResult.reason);
+            	agent.RegistarHistory(notBadResult.ip, "[notBad]"+ myScoreResult.reason + notBadResult.reason);
             	return notBadResult.ip;
             }
             

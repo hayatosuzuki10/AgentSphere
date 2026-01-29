@@ -1,7 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>selab</groupId>
@@ -10,56 +9,67 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- ★DL4J/ND4Jのバージョンを統一（事故防止） -->
+    <dl4j.version>1.0.0-M2.1</dl4j.version>
+    <nd4j.version>1.0.0-M2.1</nd4j.version>
+
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-
-    <!-- javaflow plugin用（デフォルトはfalse相当） -->
-    <javaflow.skip>false</javaflow.skip>
   </properties>
 
-  <!-- =====================
-       Repositories
-       ===================== -->
   <repositories>
+    <!-- seasar系 -->
     <repository>
       <id>maven.seasar.org</id>
       <name>The Seasar Foundation Maven Repository</name>
       <url>https://maven.seasar.org/maven2</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
+      <snapshots><enabled>false</enabled></snapshots>
     </repository>
 
     <repository>
       <id>maven-snapshot.seasar.org</id>
       <name>The Seasar Foundation Maven Snapshot Repository</name>
       <url>https://maven.seasar.org/maven2-snapshot</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
+      <releases><enabled>false</enabled></releases>
       <snapshots>
         <enabled>true</enabled>
         <updatePolicy>always</updatePolicy>
       </snapshots>
     </repository>
 
+    <!-- jitpack -->
     <repository>
       <id>jitpack.io</id>
       <url>https://jitpack.io</url>
     </repository>
   </repositories>
 
-  <!-- =====================
-       Dependencies
-       ===================== -->
   <dependencies>
+    <!-- javaflow -->
+    <dependency>
+      <groupId>net.tascalate.javaflow</groupId>
+      <artifactId>net.tascalate.javaflow.api</artifactId>
+      <version>2.7.3</version>
+    </dependency>
+    <dependency>
+      <groupId>net.tascalate.javaflow</groupId>
+      <artifactId>net.tascalate.javaflow.extras</artifactId>
+      <version>2.4.2</version>
+    </dependency>
 
-    <!-- logging -->
+    <!-- log -->
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
       <version>1.2.16</version>
     </dependency>
+
+	<dependency>
+  <groupId>org.jocl</groupId>
+  <artifactId>jocl</artifactId>
+  <version>2.0.4</version>
+</dependency>
 
     <dependency>
       <groupId>javassist</groupId>
@@ -79,13 +89,7 @@
       <version>2.4.43</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.jocl</groupId>
-      <artifactId>jocl</artifactId>
-      <version>2.0.4</version>
-    </dependency>
-
-    <!-- json -->
+    <!-- jackson/json -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
@@ -102,7 +106,7 @@
       <version>1.2.7</version>
     </dependency>
 
-    <!-- system info -->
+    <!-- oshi -->
     <dependency>
       <groupId>com.github.oshi</groupId>
       <artifactId>oshi-core</artifactId>
@@ -115,14 +119,12 @@
       <version>3.9.0</version>
     </dependency>
 
-    <!-- chart -->
     <dependency>
       <groupId>jfree</groupId>
       <artifactId>jfreechart</artifactId>
       <version>1.0.13</version>
     </dependency>
 
-    <!-- slf4j -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -134,7 +136,7 @@
       <version>1.7.30</version>
     </dependency>
 
-    <!-- serialkiller (system) -->
+    <!-- serialkiller（system依存はそのまま） -->
     <dependency>
       <groupId>com.ikkisoft</groupId>
       <artifactId>serialkiller</artifactId>
@@ -143,49 +145,64 @@
       <systemPath>${project.basedir}/lib/serialkiller-0.4-all.jar</systemPath>
     </dependency>
 
-    <!-- javaflow runtime -->
+    <!-- もしGPU/OpenCLを使わないなら jocl も不要。残したいならそのままでOK -->
     <dependency>
-      <groupId>net.tascalate.javaflow</groupId>
-      <artifactId>net.tascalate.javaflow.api</artifactId>
-      <version>2.7.3</version>
-    </dependency>
-    <dependency>
-      <groupId>net.tascalate.javaflow</groupId>
-      <artifactId>net.tascalate.javaflow.extras</artifactId>
-      <version>2.4.2</version>
+      <groupId>org.jocl</groupId>
+      <artifactId>jocl</artifactId>
+      <version>2.0.4</version>
     </dependency>
 
-    <!-- DL4J / ND4J -->
+    <!-- =========================
+         ★ DL4J / ND4J : CPU構成
+         ========================= -->
+
+    <!-- DL4J core / nn / datasets / zoo -->
     <dependency>
       <groupId>org.deeplearning4j</groupId>
       <artifactId>deeplearning4j-core</artifactId>
-      <version>1.0.0-M2.1</version>
+      <version>${dl4j.version}</version>
     </dependency>
-
-    <!-- GPU(CUDA 11.6) platform -->
     <dependency>
-      <groupId>org.nd4j</groupId>
-      <artifactId>nd4j-cuda-11.6-platform</artifactId>
-      <version>1.0.0-M2.1</version>
+      <groupId>org.deeplearning4j</groupId>
+      <artifactId>deeplearning4j-nn</artifactId>
+      <version>${dl4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.deeplearning4j</groupId>
+      <artifactId>deeplearning4j-datasets</artifactId>
+      <version>${dl4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.deeplearning4j</groupId>
+      <artifactId>deeplearning4j-zoo</artifactId>
+      <version>${dl4j.version}</version>
     </dependency>
 
-    <!-- ↑CPUのnd4j-native-platformは基本的に入れない（競合/混在を避ける） -->
-    <!--
+    <!-- ND4J CPU backend（これがCPU実行の本体） -->
     <dependency>
       <groupId>org.nd4j</groupId>
       <artifactId>nd4j-native-platform</artifactId>
-      <version>1.0.0-M2.1</version>
+      <version>${nd4j.version}</version>
     </dependency>
-    -->
+
+    <!-- datavec image（CIFAR/画像系で必要） -->
+    <dependency>
+      <groupId>org.datavec</groupId>
+      <artifactId>datavec-data-image</artifactId>
+      <version>${dl4j.version}</version>
+    </dependency>
+
+    <!-- nd4j-api は通常 transitive で入るけど、明示したいなら残してOK -->
+    <dependency>
+      <groupId>org.nd4j</groupId>
+      <artifactId>nd4j-api</artifactId>
+      <version>${nd4j.version}</version>
+    </dependency>
 
   </dependencies>
 
-  <!-- =====================
-       Build
-       ===================== -->
   <build>
     <plugins>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
@@ -202,7 +219,7 @@
         </configuration>
       </plugin>
 
-      <!-- fat jar -->
+      <!-- 実行可能jar -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -229,14 +246,13 @@
         </executions>
       </plugin>
 
-      <!-- javaflow enhance (skip可能) -->
+      <!-- javaflow enhance -->
       <plugin>
         <groupId>net.tascalate.javaflow</groupId>
         <artifactId>net.tascalate.javaflow.tools.maven</artifactId>
         <version>2.7.3</version>
         <configuration>
           <buildDir>${project.outputDirectory}</buildDir>
-          <skip>${javaflow.skip}</skip>
         </configuration>
         <executions>
           <execution>
@@ -247,8 +263,48 @@
           </execution>
         </executions>
       </plugin>
-
     </plugins>
-  </build>
 
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.eclipse.m2e</groupId>
+          <artifactId>lifecycle-mapping</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <lifecycleMappingMetadata>
+              <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>net.tascalate.javaflow</groupId>
+                    <artifactId>net.tascalate.javaflow.tools.maven</artifactId>
+                    <versionRange>[2.7.3,)</versionRange>
+                    <goals>
+                      <goal>javaflow-enhance</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore/>
+                  </action>
+                </pluginExecution>
+              </pluginExecutions>
+            </lifecycleMappingMetadata>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>net.tascalate.javaflow</groupId>
+          <artifactId>javaflow-enhance-maven-plugin</artifactId>
+          <version>2.7.3</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>enhance</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 </project>
