@@ -28,7 +28,9 @@ public class DHTutil {
 	private static final String StaticPICode = "stapi:";
 	private static final String StaticPIStampCode = "stapis:";
 	private static final String AcceptableCode = "acceptable:";
+	private static final String AcceptableStampCode = "acceptable_ts:";
 	private static final String AgentCode = "agent";
+	private static final long ANALYZE_TIMEOUT = 30;
 	private static long timeStampExpire = Scheduler.getTimeStampExpire();
 
 	public static void setSpec(String key, SphereSpec spec) {
@@ -104,36 +106,39 @@ public class DHTutil {
 
 	public static boolean canAccept(String key) {
 	    Boolean val = (Boolean) DHTChordAPI.get(keyCode + AcceptableCode + key);
+	    Instant ts = (Instant) DHTChordAPI.get(keyCode + AcceptableStampCode + key);
 
-	    // 取得ログ
-	    System.out.printf(
-	        "[DHTutil#canAccept] time=%s key=%s rawVal=%s resolved=%s%n",
-	        Instant.now(),
-	        key,
-	        val,
-	        (val == null || val)
-	    );
+	    if (val == null) return true;
+	    if (val) return true;
 
-	    return val == null || val;
+	    // false のときだけチェック
+	    if (ts != null && ts.plusSeconds(ANALYZE_TIMEOUT).isBefore(Instant.now())) {
+	        // 自動復帰
+	        setCondition(key, true);
+	        return true;
+	    }
+
+	    return false;
 	}
 	
 	public static void setCondition(String key, boolean canAccept) {
-	    // Info log 前提：状態変化の通知
+	    Instant now = Instant.now();
+
 	    System.out.printf(
 	        "[DHTutil#setCondition] time=%s key=%s canAccept=%s%n",
-	        Instant.now(), key, canAccept
+	        now, key, canAccept
 	    );
 
-	    if (!canAccept) {
-	        // 解析モード突入ログ
-	        System.out.println("[DHTutil#setCondition] ANALYZE MODE START for IP: " + key);
-	    } else {
-	        // 解析モード終了ログ（受け入れ再開）
-	        System.out.println("[DHTutil#setCondition] ANALYZE MODE END for IP: " + key);
-	    }
-
 	    DHTChordAPI.put(keyCode + AcceptableCode + key, canAccept);
+	    DHTChordAPI.put(keyCode + AcceptableStampCode + key, now);
+
+	    if (!canAccept) {
+	        System.out.println("[ANALYZE START] " + key);
+	    } else {
+	        System.out.println("[ANALYZE END] " + key);
+	    }
 	}
+	
 	
 	public static AgentClassInfo getAgentInfo(String key) {
 	    AgentClassInfo info =
