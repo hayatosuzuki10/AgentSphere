@@ -196,11 +196,11 @@ public class DynamicPCInfoDetector {
             int afterAgentNum = 0;
             
             for(var e: beforeDPI.Agents.entrySet()) {
-            	if(e.getValue().Name.contains("Messenger"))
+            	if(!e.getValue().Name.contains("Messenger"))
             		beforeAgentNum ++;
             }
             for(var e: afterDPI.Agents.entrySet()) {
-            	if(e.getValue().Name.contains("Messenger"))
+            	if(!e.getValue().Name.contains("Messenger"))
             		afterAgentNum ++;
             }
             agentChange = afterAgentNum - beforeAgentNum;
@@ -302,8 +302,6 @@ public class DynamicPCInfoDetector {
             // ---- CPU ----
             if (this.hasChangeCPU) {
                 info.recordCPUChange(cpuPerfChange, this.timeStamp, agentChange);
-            } else {
-                info.recordCPUChange(0, this.timeStamp, agentChange);
             }
 
             // ---- メモリ（総合 / 内訳）----
@@ -312,34 +310,23 @@ public class DynamicPCInfoDetector {
                 // 内訳も記録
                 info.recordHeapChange(heapMemoryChange, this.timeStamp, agentChange);
                 info.recordGCCountChange(gcCountChange, this.timeStamp, agentChange);
-            } else {
-                info.recordHeapChange(0L, this.timeStamp, agentChange);
-                info.recordGCCountChange(0, this.timeStamp, agentChange);
             }
 
             // ---- GPU ----
             if (this.hasChangeGPU) {
                 info.recordGPUChange(gpuPerfChange, timeStamp, agentChange);
-            } else {
-                info.recordGPUChange(0, timeStamp, agentChange);
             }
 
             // ---- Network ----
             if (this.hasChangeNetworkUp) {
                 info.recordNetworkUpChange((long) netUpChangeMbps, timeStamp, agentChange);
-            } else {
-                info.recordNetworkUpChange(0L, timeStamp, agentChange);
             }
             if (this.hasChangeNetworkDown) {
                 info.recordNetworkDownChange((long) netDownChangeMbps, timeStamp, agentChange);
-            } else {
-                info.recordNetworkDownChange(0L, timeStamp, agentChange);
             }
             
             if (this.hasChangeDiskRead || this.hasChangeDiskWrite) {
                 info.recordDiskIOChange(diskReadChange, diskWriteChange, timeStamp, agentChange);
-            } else {
-                info.recordDiskIOChange(0L, 0L, timeStamp, agentChange);
             }
             
             if (classInfo == null) {
@@ -350,8 +337,6 @@ public class DynamicPCInfoDetector {
             // ---- CPU ----
             if (this.hasChangeCPU) {
                 classInfo.setCpuChange(cpuPerfChange, agentChange == 1);
-            } else {
-                classInfo.setCpuChange(0, agentChange == 1);
             }
 
             // ---- メモリ（総合 / 内訳）----
@@ -360,36 +345,24 @@ public class DynamicPCInfoDetector {
                 // 内訳も記録
                 classInfo.setHeapChange(heapMemoryChange, agentChange == 1);
                 classInfo.setGCCountChange(gcCountChange, agentChange == 1);
-            } else {
-                classInfo.setHeapChange(0L, agentChange == 1);
-                classInfo.setGCCountChange(0, agentChange == 1);
-            }
+            } 
 
             // ---- GPU ----
             if (this.hasChangeGPU) {
                 classInfo.setGpuChange(gpuPerfChange, agentChange == 1);
-            } else {
-                classInfo.setGpuChange(0, agentChange == 1);
             }
 
             // ---- Network ----
             if (this.hasChangeNetworkUp) {
                 classInfo.setNetworkUpChange((long) netUpChangeMbps, agentChange == 1);
-            } else {
-                classInfo.setNetworkUpChange(0L, agentChange == 1);
-            }
+            } 
             if (this.hasChangeNetworkDown) {
                 classInfo.setNetworkDownChange((long) netDownChangeMbps, agentChange == 1);
-            } else {
-                classInfo.setNetworkDownChange(0L, agentChange == 1);
-            }
+            } 
             
             if (this.hasChangeDiskRead || this.hasChangeDiskWrite) {
                 classInfo.setDiskReadChange(diskReadChange, agentChange == 1);
                 classInfo.setDiskWriteChange(diskReadChange, agentChange == 1);
-            } else {
-                classInfo.setDiskReadChange(0L, agentChange == 1);
-                classInfo.setDiskWriteChange(0L, agentChange == 1);
             }
 
             Scheduler.agentInfo.put(id, info);

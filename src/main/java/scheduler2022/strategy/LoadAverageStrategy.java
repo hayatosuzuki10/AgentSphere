@@ -127,6 +127,7 @@ public class LoadAverageStrategy implements SchedulerStrategy{
 
 	@Override
 	public String getDestination(AbstractAgent agent) {
+		agent.RegistarHistory(NextDirection, "");
 		return NextDirection;
 	}
 	

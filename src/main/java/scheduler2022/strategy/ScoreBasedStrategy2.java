@@ -95,7 +95,7 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
             if(!agentNeedsGPU && clusterHasGpuAgents && isThisGpuPc) {
             	myScoreResult.score -= 2.0;
             }
-            boolean needAnalyze = !info.isAccurate() || info.isExpired();
+            boolean needAnalyze = !info.isAccurate() || info.isExpired() || !info.hasAnalyze();
             for (String ip : getAliveIPs()) {
             	
                 if (ip.equals(selfIP)) continue;
@@ -142,7 +142,7 @@ public class ScoreBasedStrategy2 implements SchedulerStrategy {
                     System.out.println("[SCORE-SKIP] " + ip + " " + e.getClass().getSimpleName());
                 }
             }
-            if(analyzingResult.score > myScoreResult.score + Scheduler.scoreThreshold) {
+            if(analyzingResult.score > myScoreResult.score) {
             	if(DHTutil.getPcInfo(analyzingResult.ip).AgentsNum == 0) {
                 	DHTutil.setCondition(analyzingResult.ip, false);
                 }

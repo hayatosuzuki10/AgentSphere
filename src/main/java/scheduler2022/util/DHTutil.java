@@ -104,12 +104,34 @@ public class DHTutil {
 
 	public static boolean canAccept(String key) {
 	    Boolean val = (Boolean) DHTChordAPI.get(keyCode + AcceptableCode + key);
-	    return val != null && val; // null 安全
+
+	    // 取得ログ
+	    System.out.printf(
+	        "[DHTutil#canAccept] time=%s key=%s rawVal=%s resolved=%s%n",
+	        Instant.now(),
+	        key,
+	        val,
+	        (val == null || val)
+	    );
+
+	    return val == null || val;
 	}
 	
-	public static void setCondition(String key ,boolean canAccept) {
-		if(canAccept == false)
-		System.out.println("ANALYZE MODE:" + key);
+	public static void setCondition(String key, boolean canAccept) {
+	    // Info log 前提：状態変化の通知
+	    System.out.printf(
+	        "[DHTutil#setCondition] time=%s key=%s canAccept=%s%n",
+	        Instant.now(), key, canAccept
+	    );
+
+	    if (!canAccept) {
+	        // 解析モード突入ログ
+	        System.out.println("[DHTutil#setCondition] ANALYZE MODE START for IP: " + key);
+	    } else {
+	        // 解析モード終了ログ（受け入れ再開）
+	        System.out.println("[DHTutil#setCondition] ANALYZE MODE END for IP: " + key);
+	    }
+
 	    DHTChordAPI.put(keyCode + AcceptableCode + key, canAccept);
 	}
 	

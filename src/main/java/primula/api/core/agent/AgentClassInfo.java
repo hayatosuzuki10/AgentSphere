@@ -25,6 +25,8 @@ public class AgentClassInfo implements Serializable {
     
     private int measureCount  = 0;
     private long measureTime = System.currentTimeMillis();
+    
+    private boolean hasFirstAnalyze = false;
 
     private final double accurateLearning = 0.8;
     private final double unAccurateLearning = 0.01;
@@ -95,6 +97,10 @@ public class AgentClassInfo implements Serializable {
 
     public void setName(String name) { this.name = name; }
     
+    public boolean hasAnalyze() {
+    	return hasFirstAnalyze;
+    }
+    
     public boolean isAccurate() {
     	return measureCount < unAccurateCount;
     }
@@ -106,6 +112,7 @@ public class AgentClassInfo implements Serializable {
     public int getCpuChange() { return cpuChange; }
 
     public void setCpuChange(int val, boolean isAccurate) { 
+    	hasFirstAnalyze = true;
     	recordCPUChange(val, now(), isAccurate);
     	if(isAccurate) {
     		measureCount = 0;
